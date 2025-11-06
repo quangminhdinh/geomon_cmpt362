@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E6D7B0">
+
+    <!-- enemy mon info (top center) -->
+    <LinearLayout
+        android:id="@+id/enemy_info"
+        android:layout_width="210dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@android:color/white"
+        android:padding="8dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="56dp">
+
+        <TextView
+            android:id="@+id/tvEnemyName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Wild Slime"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tvEnemyLevel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Lv. 7" />
+
+        <ProgressBar
+            android:id="@+id/enemyHpBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="10dp"
+            android:progress="100"
+            android:max="100"
+            android:progressTint="#4CAF50"
+            android:layout_marginTop="6dp" />
+    </LinearLayout>
+
+    <!-- enemy image (under enemy info, centered) -->
+    <ImageView
+        android:id="@+id/imgEnemy"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@android:drawable/ic_menu_gallery"
+        app:layout_constraintTop_toBottomOf="@id/enemy_info"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp" />
+
+    <!-- player mon image (centered above bottom bar) -->
+    <ImageView
+        android:id="@+id/imgPlayerMon"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@android:drawable/ic_menu_gallery"
+        app:layout_constraintBottom_toTopOf="@id/bottom_bar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="12dp" />
+
+    <!-- battle dialog (middle-right) -->
+    <LinearLayout
+        android:id="@+id/battle_dialog"
+        android:layout_width="210dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@android:color/transparent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintVertical_bias="0.5"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp">
+
+        <TextView
+        android:id="@+id/tvBattleText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="What will your monster do?"
+        android:textSize="15sp" />
+    </LinearLayout>
+
+    <!-- bottom bar (50/50 player mon info/buttons) -->
+    <LinearLayout
+        android:id="@+id/bottom_bar"
+        android:layout_width="0dp"
+        android:layout_height="140dp"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- player mon info (left) -->
+        <LinearLayout
+            android:id="@+id/player_info"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:background="@android:color/white"
+            android:padding="8dp"
+            android:elevation="3dp">
+
+            <TextView
+                android:id="@+id/tvPlayerMonName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Default Mon"
+                android:textStyle="bold"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/tvPlayerMonLevel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Lv. 5" />
+
+            <ProgressBar
+                android:id="@+id/playerHpBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="10dp"
+                android:progress="100"
+                android:max="100"
+                android:progressTint="#4CAF50"
+                android:layout_marginTop="6dp" />
+        </LinearLayout>
+
+        <!-- action buttons (right) -->
+        <LinearLayout
+            android:id="@+id/battle_actions"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingStart="8dp">
+
+            <!-- first row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal">
+
+                <!-- fight (top left)  -->
+                <Button
+                    android:id="@+id/btnFight"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Fight"
+                    android:textAllCaps="false" />
+
+                <!-- inventory (top right)  -->
+                <Button
+                    android:id="@+id/btnInventory"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Inventory"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+
+            <!-- second row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp">
+
+                <!-- capture (bottom left)  -->
+                <Button
+                    android:id="@+id/btnCapture"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Capture"
+                    android:textAllCaps="false" />
+
+                <!-- run (bottom right)  -->
+                <Button
+                    android:id="@+id/btnRun"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:text="Run"
+                    android:textAllCaps="false" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+

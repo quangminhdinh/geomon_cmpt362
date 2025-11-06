@@ -10,6 +10,7 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import android.content.Intent
 import kotlin.random.Random
 
 class MapActivity : AppCompatActivity(), OnMapReadyCallback {
@@ -21,7 +22,13 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_map)
+        setContentView(R.layout.activity_home)
+
+        // click player to open stats
+        val playerPanel = findViewById<android.view.View>(R.id.player_panel)
+        playerPanel.setOnClickListener {
+            showPlayerStats()
+        }
 
         // Initialize permission handler
         permissionHandler = PermissionHandler(this)
@@ -32,6 +39,8 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         // If permissions not granted, initializeMap() will be called
         // after user grants permissions in onRequestPermissionsResult
+
+
     }
 
     private fun initializeMap() {
@@ -88,11 +97,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
         googleMap.setOnMarkerClickListener { marker ->
             val monster = marker.tag as? Monster
             if (monster != null) {
-                Toast.makeText(
-                    this,
-                    "Monster: ${monster.name}\nLevel: ${monster.level}\nID: ${monster.id}",
-                    Toast.LENGTH_LONG
-                ).show()
+                showMonsterDialog(monster)
                 true
             } else {
                 false
@@ -158,4 +163,46 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             marker?.tag = monster
         }
     }
+
+    private fun showPlayerStats() {
+        // make a dialog that uses our layout
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.player_stats)
+
+        // close button
+        val closeBtn = dialog.findViewById<android.widget.Button>(R.id.btnCloseStats)
+        closeBtn.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showMonsterDialog(monster: Monster) {
+        val dialog = android.app.Dialog(this)
+        dialog.setContentView(R.layout.monster_dialog)
+
+        val nameText = dialog.findViewById<android.widget.TextView>(R.id.tvMonsterName)
+        val levelText = dialog.findViewById<android.widget.TextView>(R.id.tvMonsterLevel)
+        val btnCancel = dialog.findViewById<android.widget.Button>(R.id.btnCancel)
+        val btnFight = dialog.findViewById<android.widget.Button>(R.id.btnFight)
+
+        nameText.text = monster.name
+        levelText.text = "Lv. ${monster.level}"
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnFight.setOnClickListener {
+            dialog.dismiss()
+            val intent = Intent(this, BattleActivity::class.java)
+            intent.putExtra("enemy_name", monster.name)
+            intent.putExtra("enemy_level", monster.level)
+            startActivity(intent)
+        }
+
+
+        dialog.show()
+    }
+
+
+
 }
