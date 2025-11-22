@@ -67,19 +67,40 @@ class BattleActivity : ComponentActivity() {
         btnMove4 = findViewById(R.id.btnMove4)
         btnRun = findViewById(R.id.btnRun)
 
-        val playerName  = intent.getStringExtra(EXTRA_PLAYER_NAME) ?: "Watercoon"
-        val enemyName   = intent.getStringExtra(EXTRA_ENEMY_NAME) ?: "Watercoon"
+        val playerId = intent.getStringExtra(EXTRA_PLAYER_ID)
+        val enemyId = intent.getStringExtra(EXTRA_ENEMY_ID)
 
         lifecycleScope.launch {
-            player = Monster.initializeByName(this@BattleActivity, playerName)
-            opponent = Monster.initializeByName(this@BattleActivity, enemyName)
+            // Both IDs must be present
+            if (playerId == null || enemyId == null) {
+                Log.e("BattleActivity", "Missing player or enemy ID")
+                finish()
+                return@launch
+            }
+
+            // Fetch player monster from Firebase
+            val fetchedPlayer = Monster.fetchById(playerId)
+            if (fetchedPlayer == null) {
+                Log.e("BattleActivity", "Failed to fetch player monster")
+                finish()
+                return@launch
+            }
+            player = fetchedPlayer
+
+            // Fetch enemy monster from Firebase
+            val fetchedEnemy = Monster.fetchById(enemyId)
+            if (fetchedEnemy == null) {
+                Log.e("BattleActivity", "Failed to fetch enemy monster")
+                finish()
+                return@launch
+            }
+            opponent = fetchedEnemy
 
             tvPlayerName.text = player.name
             tvOpponentName.text = opponent.name
             updateHpUi()
             setupMoveButtons()
             logStats()
-
         }
 
 
@@ -210,8 +231,8 @@ class BattleActivity : ComponentActivity() {
     }
 
     companion object {
-        const val EXTRA_PLAYER_NAME = "extra_player_name"
-        const val EXTRA_ENEMY_NAME  = "extra_enemy_name"
+        const val EXTRA_PLAYER_ID   = "extra_player_id"
+        const val EXTRA_ENEMY_ID    = "extra_enemy_id"
     }
 
     private fun logStats() {

@@ -11,9 +11,9 @@ object Seeder {
     suspend fun run(context: Context, repo: SpeciesRepository) = withContext(Dispatchers.IO) {
 
 
-        if (repo.countSpecies() > 0) {
-            return@withContext
-        }
+//        if (repo.countSpecies() > 0) {
+//            return@withContext
+//        }
         val speciesEntities = loadSpeciesEntitiesFromJson(context)
 
 
