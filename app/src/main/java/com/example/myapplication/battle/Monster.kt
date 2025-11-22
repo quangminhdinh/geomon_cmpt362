@@ -3,6 +3,7 @@ import java.io.Serializable
 import android.content.Context
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MoveEntity
+import com.example.myapplication.data.FirebaseManager
 
 class Monster(
     val name: String,
@@ -59,7 +60,7 @@ class Monster(
             val move4 = move4Entity?.let { e: MoveEntity -> Move.fromEntity(e) }
 
 
-            return Monster(
+            val monster = Monster(
                 name = species.name,
                 level = 50,
                 type1 = species.type1,
@@ -80,6 +81,11 @@ class Monster(
                 learnableMoves = listOfNotNull(move1, move2, move3, move4),
                 isFainted = false
             )
+
+            // Upload to Firebase Realtime Database with auto-generated unique ID
+            FirebaseManager.monstersRef.push().setValue(monster.toMap())
+
+            return monster
         }
         //prevents errors when a monster back ups improperly
         private fun createDefault(name: String = "DefaultMon"): Monster {
@@ -126,6 +132,27 @@ class Monster(
     }
 
     fun isAlive(): Boolean = !isFainted
-    // heal health, called by healing moves
 
+    fun toMap(): Map<String, Any?> {
+        return mapOf(
+            "name" to name,
+            "level" to level,
+            "type1" to type1,
+            "type2" to type2,
+            "type3" to type3,
+            "spritePath" to spritePath,
+            "maxHp" to maxHp,
+            "currentHp" to currentHp,
+            "attack" to attack,
+            "specialAttack" to specialAttack,
+            "defense" to defense,
+            "specialDefense" to specialDefense,
+            "speed" to speed,
+            "move1" to move1?.name,
+            "move2" to move2?.name,
+            "move3" to move3?.name,
+            "move4" to move4?.name,
+            "isFainted" to isFainted
+        )
+    }
 }
