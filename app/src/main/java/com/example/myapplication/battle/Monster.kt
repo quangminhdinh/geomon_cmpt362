@@ -6,6 +6,7 @@ import com.example.myapplication.data.db.MoveEntity
 import com.example.myapplication.data.FirebaseManager
 
 class Monster(
+    val id: String = "",  // Firebase auto-generated ID
     val name: String,
     var level: Int = 1,
 
@@ -32,12 +33,22 @@ class Monster(
     // learnable moves
     val learnableMoves: List<Move> = emptyList(),
 
-    var isFainted: Boolean = false
+    var isFainted: Boolean = false,
+
+    // Location fields for map spawning
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0
 ) : Serializable {
 
     companion object {
         // initializer a monster with the attributes from the appdatabase
-        suspend fun initializeByName(context: Context, name: String): Monster {
+        suspend fun initializeByName(
+            context: Context,
+            name: String,
+            level: Int = 50,
+            latitude: Double = 0.0,
+            longitude: Double = 0.0
+        ): Monster {
             val db = AppDatabase.get(context)
             val dao = db.speciesDao()
 
@@ -60,9 +71,13 @@ class Monster(
             val move4 = move4Entity?.let { e: MoveEntity -> Move.fromEntity(e) }
 
 
+            val monsterRef = FirebaseManager.monstersRef.push()
+            val monsterId = monsterRef.key ?: ""
+
             val monster = Monster(
+                id = monsterId,
                 name = species.name,
-                level = 50,
+                level = level,
                 type1 = species.type1,
                 type2 = species.type2,
                 type3 = species.type3,
@@ -79,11 +94,13 @@ class Monster(
                 move3 = move3,
                 move4 = move4,
                 learnableMoves = listOfNotNull(move1, move2, move3, move4),
-                isFainted = false
+                isFainted = false,
+                latitude = latitude,
+                longitude = longitude
             )
 
-            // Upload to Firebase Realtime Database with auto-generated unique ID
-            FirebaseManager.monstersRef.push().setValue(monster.toMap())
+            // Upload to Firebase Realtime Database
+            monsterRef.setValue(monster.toMap())
 
             return monster
         }
@@ -152,7 +169,9 @@ class Monster(
             "move2" to move2?.name,
             "move3" to move3?.name,
             "move4" to move4?.name,
-            "isFainted" to isFainted
+            "isFainted" to isFainted,
+            "latitude" to latitude,
+            "longitude" to longitude
         )
     }
 }
