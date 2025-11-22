@@ -1,5 +1,0 @@
-[
-  { "id": "tackle", "name": "Tackle", "type": "Normal", "accuracy": "95" },
-  { "id": "ember",  "name": "Ember",  "type": "Fire",   "accuracy": "100" },
-  { "id": "vine_whip", "name": "Vine Whip", "type": "Grass", "accuracy": "100" }
-]
