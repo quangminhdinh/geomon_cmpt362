@@ -97,10 +97,10 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // Launch battle
+                // Launch battle with monster names
                 val intent = Intent(requireContext(), BattleActivity::class.java).apply {
-                    putExtra("ENEMY_SPECIES_ID", monster.speciesId)
-                    putExtra("ENEMY_LEVEL", monster.level)
+                    putExtra("extra_player_name", "Watercoon") // Default player monster
+                    putExtra("extra_enemy_name", monster.speciesId) // Enemy species ID as name
                 }
                 startActivity(intent)
                 true
@@ -148,6 +148,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                     val monsterLon = cellLon + lonOffset
                     val level = random.nextInt(1, 21)
 
+                    // Pick random species from database
                     val speciesId = availableSpeciesIds.random(random)
                     val speciesName = speciesId.replaceFirstChar { it.uppercase() }
 
