@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.home
 
+import android.content.Context.BIND_AUTO_CREATE
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -8,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -22,19 +25,26 @@ import com.example.myapplication.data.Seeder
 import com.example.myapplication.data.SpeciesRepository
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.databinding.FragmentHomeBinding
+import com.example.myapplication.services.tracking.TrackingService
+import com.example.myapplication.services.tracking.TrackingViewModel
+import com.google.android.gms.maps.model.Marker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import java.util.Locale
 import kotlin.random.Random
 
 class HomeFragment : Fragment(), OnMapReadyCallback {
-
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
     
     private lateinit var googleMap: GoogleMap
+    private lateinit var  playerMarkerOptions: MarkerOptions
+    private var playerMarker: Marker? = null
+    private val zoomValue = 15f
+
+    private lateinit var trackingViewModel: TrackingViewModel
+    private lateinit var serviceIntent: Intent
     private lateinit var repository: SpeciesRepository
-    private val playerLocation = LatLng(49.2606, -123.2460) // Surrey, BC
     private var availableSpeciesIds: List<String> = emptyList()
 
     override fun onCreateView(
@@ -63,28 +73,50 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
         // Initialize map
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
+        serviceIntent = Intent(requireActivity(), TrackingService::class.java)
+        trackingViewModel = ViewModelProvider(requireActivity()).get(TrackingViewModel::class.java)
+
         mapFragment?.getMapAsync(this)
 
         return root
     }
 
+    fun initTrackingService() {
+        if (!(trackingViewModel.serviceStarted.value!!)) {
+            requireActivity().startService(serviceIntent)
+            trackingViewModel.serviceStarted.value = true
+        }
+        requireActivity()
+            .bindService(serviceIntent, trackingViewModel, BIND_AUTO_CREATE)
+
+        trackingViewModel.latLng.observe(this, Observer { it -> updateMap(it) })
+    }
+
+    fun updateMap(latLng: LatLng) {
+        val cameraUpdate = CameraUpdateFactory.newLatLngZoom(
+            latLng, zoomValue)
+        googleMap.animateCamera(cameraUpdate)
+        playerMarker?.remove()
+        playerMarkerOptions.position(latLng)
+        playerMarker = googleMap.addMarker(playerMarkerOptions)
+    }
+
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
+        googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+        playerMarkerOptions = MarkerOptions()
+            .title("You")
+            .icon(BitmapDescriptorFactory.defaultMarker(
+                BitmapDescriptorFactory.HUE_AZURE))
 
-        // Add player marker
-        googleMap.addMarker(
-            MarkerOptions()
-                .position(playerLocation)
-                .title("You")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-        )
+
+
+
+
 
         // Generate and spawn monsters
         val monsters = generateMonstersAroundPlayer()
         spawnMonstersOnMap(monsters)
-
-        // Move camera to player
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(playerLocation, 15f))
 
         // Handle marker clicks
         googleMap.setOnMarkerClickListener { marker ->
@@ -186,5 +218,8 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        trackingViewModel.serviceStarted.value = false
+        requireActivity().unbindService(trackingViewModel)
+        requireActivity().stopService(serviceIntent)
     }
 }

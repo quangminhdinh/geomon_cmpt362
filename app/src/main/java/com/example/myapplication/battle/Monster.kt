@@ -3,7 +3,7 @@ import java.io.Serializable
 import android.content.Context
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MoveEntity
-//Monster Class Object
+
 class Monster(
     val name: String,
     var level: Int = 1,
@@ -41,9 +41,10 @@ class Monster(
             val dao = db.speciesDao()
 
 
-            val species =
-                dao.getByIdNow(name.lowercase())
-                    ?: dao.getByIdNow(name)
+            val tempSpecies = dao.getByIdNow(name.lowercase())
+
+            val species = tempSpecies
+                    ?: tempSpecies
                     ?: return createDefault(name)
 
             val move1Entity = species.move1Id?.let { dao.getMoveByIdNow(it) }
