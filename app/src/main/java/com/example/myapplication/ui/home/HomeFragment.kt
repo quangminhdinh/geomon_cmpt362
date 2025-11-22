@@ -34,6 +34,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 import android.content.Context
@@ -69,24 +70,27 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
         val db = AppDatabase.get(requireContext())
         repository = SpeciesRepository(db.speciesDao())
 
-        // Seed database and initialize player monster
+        // Load player monster ID from preferences
+        val prefs = requireContext().getSharedPreferences("player_data", Context.MODE_PRIVATE)
+        playerMonsterId = prefs.getString("player_monster_id", null)
+        Log.d("GeoMon", "Loaded playerMonsterId from prefs: $playerMonsterId")
+
+        // Seed database, load species, and create player monster if needed
         lifecycleScope.launch(Dispatchers.IO) {
+            Log.d("GeoMon", "Starting seeder")
             Seeder.run(requireContext(), repository)
             Log.d("GeoMon", "Database transferred")
 
-            // Load available species IDs
-            repository.allSpecies().collect { speciesList ->
-                availableSpeciesIds = speciesList.map { it.id }
-                Log.d("GeoMon", "Loaded ${availableSpeciesIds.size} species")
-            }
-        }
+            // Load available species IDs (use first() since Room Flows never complete)
+            Log.d("GeoMon", "Starting to load species")
+            val speciesList = repository.allSpecies().first()
+            availableSpeciesIds = speciesList.map { it.id }
+            Log.d("GeoMon", "Loaded ${availableSpeciesIds.size} species")
 
-        // Load or create player monster
-        val prefs = requireContext().getSharedPreferences("player_data", Context.MODE_PRIVATE)
-        playerMonsterId = prefs.getString("player_monster_id", null)
-
-        if (playerMonsterId == null) {
-            lifecycleScope.launch(Dispatchers.IO) {
+            Log.d("GeoMon", "After collect - checking playerMonsterId: $playerMonsterId")
+            // Create player monster if it doesn't exist or if it's missing from Firebase
+            if (playerMonsterId == null) {
+                Log.d("GeoMon", "playerMonsterId is null, creating player monster")
                 val playerMonster = Monster.initializeByName(
                     context = requireContext(),
                     name = "Molediver",
@@ -97,6 +101,25 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                 playerMonsterId = playerMonster.id
                 prefs.edit().putString("player_monster_id", playerMonster.id).apply()
                 Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
+            } else {
+                // Verify the saved player monster still exists in Firebase
+                Log.d("GeoMon", "Verifying player monster exists in Firebase: $playerMonsterId")
+                val existingMonster = Monster.fetchById(playerMonsterId!!)
+                if (existingMonster == null) {
+                    Log.d("GeoMon", "Player monster not found in Firebase, creating new one")
+                    val playerMonster = Monster.initializeByName(
+                        context = requireContext(),
+                        name = "Molediver",
+                        level = 50,
+                        latitude = 0.0,
+                        longitude = 0.0
+                    )
+                    playerMonsterId = playerMonster.id
+                    prefs.edit().putString("player_monster_id", playerMonster.id).apply()
+                    Log.d("GeoMon", "Created new player monster: ${playerMonster.id}")
+                } else {
+                    Log.d("GeoMon", "Player monster verified: ${existingMonster.name} (${existingMonster.id})")
+                }
             }
         }
 
