@@ -1,9 +1,13 @@
 package com.example.myapplication.battle
 import java.io.Serializable
 import android.content.Context
+import android.util.Log
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MoveEntity
 import com.example.myapplication.data.FirebaseManager
+import com.google.firebase.database.DataSnapshot
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class Monster(
     val id: String = "",  // Firebase auto-generated ID
@@ -55,9 +59,18 @@ class Monster(
 
             val tempSpecies = dao.getByIdNow(name.lowercase())
 
+            if (tempSpecies == null) {
+                Log.e("Monster", "Species not found in database: ${name.lowercase()}")
+                // Still upload to Firebase even for default monster
+                val monsterRef = FirebaseManager.monstersRef.push()
+                val monsterId = monsterRef.key ?: ""
+                val defaultMonster = createDefault(name, monsterId, latitude, longitude)
+                monsterRef.setValue(defaultMonster.toMap())
+                Log.d("Monster", "Uploaded default monster with ID: $monsterId")
+                return defaultMonster
+            }
+
             val species = tempSpecies
-                    ?: tempSpecies
-                    ?: return createDefault(name)
 
             val move1Entity = species.move1Id?.let { dao.getMoveByIdNow(it) }
             val move2Entity = species.move2Id?.let { dao.getMoveByIdNow(it) }
@@ -101,14 +114,61 @@ class Monster(
 
             // Upload to Firebase Realtime Database
             monsterRef.setValue(monster.toMap())
+            Log.d("Monster", "Uploaded monster ${monster.name} with ID: $monsterId at ($latitude, $longitude)")
 
             return monster
         }
+
+        fun fromSnapshot(snapshot: DataSnapshot): Monster? {
+            return try {
+                Monster(
+                    id = snapshot.key ?: "",
+                    name = snapshot.child("name").getValue(String::class.java) ?: return null,
+                    level = snapshot.child("level").getValue(Int::class.java) ?: 1,
+                    type1 = snapshot.child("type1").getValue(String::class.java),
+                    type2 = snapshot.child("type2").getValue(String::class.java),
+                    type3 = snapshot.child("type3").getValue(String::class.java),
+                    spritePath = snapshot.child("spritePath").getValue(String::class.java) ?: "",
+                    maxHp = snapshot.child("maxHp").getValue(Float::class.java) ?: 50f,
+                    currentHp = snapshot.child("currentHp").getValue(Float::class.java) ?: 50f,
+                    attack = snapshot.child("attack").getValue(Float::class.java) ?: 20f,
+                    specialAttack = snapshot.child("specialAttack").getValue(Float::class.java) ?: 20f,
+                    defense = snapshot.child("defense").getValue(Float::class.java) ?: 20f,
+                    specialDefense = snapshot.child("specialDefense").getValue(Float::class.java) ?: 20f,
+                    speed = snapshot.child("speed").getValue(Float::class.java) ?: 20f,
+                    isFainted = snapshot.child("isFainted").getValue(Boolean::class.java) ?: false,
+                    latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
+                    longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0
+                )
+            } catch (e: Exception) {
+                Log.e("Monster", "Error parsing monster from snapshot: ${e.message}")
+                null
+            }
+        }
+
+        suspend fun fetchById(id: String): Monster? = suspendCoroutine { continuation ->
+            FirebaseManager.monstersRef.child(id).get()
+                .addOnSuccessListener { snapshot ->
+                    val monster = fromSnapshot(snapshot)
+                    continuation.resume(monster)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("Monster", "Error fetching monster by ID: ${e.message}")
+                    continuation.resume(null)
+                }
+        }
+
         //prevents errors when a monster back ups improperly
-        private fun createDefault(name: String = "DefaultMon"): Monster {
+        private fun createDefault(
+            name: String = "DefaultMon",
+            id: String = "",
+            latitude: Double = 0.0,
+            longitude: Double = 0.0
+        ): Monster {
             val tackle = Move.initializeByName("Tackle")
 
             return Monster(
+                id = id,
                 name = name,
                 level = 1,
                 type1 = "Normal",
@@ -127,7 +187,9 @@ class Monster(
                 move3 = null,
                 move4 = null,
                 learnableMoves = listOf(tackle),
-                isFainted = false
+                isFainted = false,
+                latitude = latitude,
+                longitude = longitude
             )
         }
     }

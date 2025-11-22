@@ -42,6 +42,11 @@
             android:name=".MapActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
+
+        <!-- TrackingService for location updates -->
+        <service
+            android:name=".services.tracking.TrackingService"
+            android:exported="false" />
     </application>
 
 </manifest>
