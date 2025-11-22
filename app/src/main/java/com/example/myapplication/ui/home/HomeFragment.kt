@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.home
 
+import android.content.Context.BIND_AUTO_CREATE
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -8,6 +9,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -17,25 +20,42 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import com.example.myapplication.R
+import com.example.myapplication.battle.Monster
 import com.example.myapplication.battle.ui.BattleActivity
+import com.example.myapplication.data.FirebaseManager
 import com.example.myapplication.data.Seeder
 import com.example.myapplication.data.SpeciesRepository
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.databinding.FragmentHomeBinding
+import com.example.myapplication.services.tracking.TrackingService
+import com.example.myapplication.services.tracking.TrackingViewModel
+import com.google.android.gms.maps.model.Marker
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import kotlin.random.Random
+import android.content.Context
 
 class HomeFragment : Fragment(), OnMapReadyCallback {
-
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
-    
+
     private lateinit var googleMap: GoogleMap
+    private lateinit var playerMarkerOptions: MarkerOptions
+    private var playerMarker: Marker? = null
+    private val zoomValue = 15f
+
+    private lateinit var trackingViewModel: TrackingViewModel
+    private lateinit var serviceIntent: Intent
     private lateinit var repository: SpeciesRepository
-    private val playerLocation = LatLng(49.2606, -123.2460) // Surrey, BC
     private var availableSpeciesIds: List<String> = emptyList()
+
+    private val monsterMarkers = mutableListOf<Marker>()
+    private val nearbyRadius = 0.01 // ~1km radius
+    private val monsterThreshold = 10 // minimum monsters in area
+    private var playerMonsterId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -49,11 +69,11 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
         val db = AppDatabase.get(requireContext())
         repository = SpeciesRepository(db.speciesDao())
 
-        // Seed database
+        // Seed database and initialize player monster
         lifecycleScope.launch(Dispatchers.IO) {
             Seeder.run(requireContext(), repository)
             Log.d("GeoMon", "Database transferred")
-            
+
             // Load available species IDs
             repository.allSpecies().collect { speciesList ->
                 availableSpeciesIds = speciesList.map { it.id }
@@ -61,46 +81,93 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
             }
         }
 
+        // Load or create player monster
+        val prefs = requireContext().getSharedPreferences("player_data", Context.MODE_PRIVATE)
+        playerMonsterId = prefs.getString("player_monster_id", null)
+
+        if (playerMonsterId == null) {
+            lifecycleScope.launch(Dispatchers.IO) {
+                val playerMonster = Monster.initializeByName(
+                    context = requireContext(),
+                    name = "Molediver",
+                    level = 50,
+                    latitude = 0.0,
+                    longitude = 0.0
+                )
+                playerMonsterId = playerMonster.id
+                prefs.edit().putString("player_monster_id", playerMonster.id).apply()
+                Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
+            }
+        }
+
         // Initialize map
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
+        serviceIntent = Intent(requireActivity(), TrackingService::class.java)
+        trackingViewModel = ViewModelProvider(requireActivity()).get(TrackingViewModel::class.java)
+
         mapFragment?.getMapAsync(this)
 
         return root
     }
 
+    fun initTrackingService() {
+        Log.d("GeoMon", "initTrackingService called")
+        Log.d("GeoMon", "serviceStarted.value = ${trackingViewModel.serviceStarted.value}")
+        if (!(trackingViewModel.serviceStarted.value!!)) {
+            Log.d("GeoMon", "Starting tracking service")
+            requireActivity().startService(serviceIntent)
+            trackingViewModel.serviceStarted.value = true
+        }
+        Log.d("GeoMon", "Binding to tracking service")
+        requireActivity()
+            .bindService(serviceIntent, trackingViewModel, BIND_AUTO_CREATE)
+
+        Log.d("GeoMon", "Setting up latLng observer")
+        trackingViewModel.latLng.observe(this, Observer { it ->
+            Log.d("GeoMon", "Received location update: $it")
+            updateMap(it)
+        })
+    }
+
+    fun updateMap(latLng: LatLng) {
+        val cameraUpdate = CameraUpdateFactory.newLatLngZoom(
+            latLng, zoomValue)
+        googleMap.animateCamera(cameraUpdate)
+        playerMarker?.remove()
+        playerMarkerOptions.position(latLng)
+        playerMarker = googleMap.addMarker(playerMarkerOptions)
+
+        // Check and spawn monsters around player
+        checkAndSpawnMonsters()
+    }
+
     override fun onMapReady(map: GoogleMap) {
+        Log.d("GeoMon", "onMapReady called")
         googleMap = map
-
-        // Add player marker
-        googleMap.addMarker(
-            MarkerOptions()
-                .position(playerLocation)
-                .title("You")
-                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-        )
-
-        // Generate and spawn monsters
-        val monsters = generateMonstersAroundPlayer()
-        spawnMonstersOnMap(monsters)
-
-        // Move camera to player
-        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(playerLocation, 15f))
+        googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
+        playerMarkerOptions = MarkerOptions()
+            .title("You")
+            .icon(BitmapDescriptorFactory.defaultMarker(
+                BitmapDescriptorFactory.HUE_AZURE))
 
         // Handle marker clicks
         googleMap.setOnMarkerClickListener { marker ->
             val monster = marker.tag as? Monster
             if (monster != null) {
-                // Show toast
                 Toast.makeText(
                     requireContext(),
                     "Encountered ${monster.name} (Lv.${monster.level})!",
                     Toast.LENGTH_SHORT
                 ).show()
 
-                // Launch battle
+                if (playerMonsterId == null) {
+                    Toast.makeText(requireContext(), "Player monster not ready", Toast.LENGTH_SHORT).show()
+                    return@setOnMarkerClickListener true
+                }
+
                 val intent = Intent(requireContext(), BattleActivity::class.java).apply {
-                    putExtra("ENEMY_SPECIES_ID", monster.speciesId)
-                    putExtra("ENEMY_LEVEL", monster.level)
+                    putExtra(BattleActivity.EXTRA_PLAYER_ID, playerMonsterId)
+                    putExtra(BattleActivity.EXTRA_ENEMY_ID, monster.id)
                 }
                 startActivity(intent)
                 true
@@ -108,82 +175,135 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                 false
             }
         }
+
+        initTrackingService()
     }
 
-    data class Monster(
-        val id: String,
-        val speciesId: String,
-        val name: String,
-        val level: Int,
-        val latitude: Double,
-        val longitude: Double
-    )
+    private fun checkAndSpawnMonsters() {
+        val playerLatLng = trackingViewModel.latLng.value ?: return
 
-    private fun generateMonstersAroundPlayer(): List<Monster> {
-        if (availableSpeciesIds.isEmpty()) {
-            Log.d("GeoMon", "No species available yet")
-            return emptyList()
-        }
+        // Query Firebase for nearby monsters
+        FirebaseManager.monstersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val nearbyMonsters = mutableListOf<Monster>()
 
-        val monsters = mutableListOf<Monster>()
-        val gridSize = 0.002
-        val range = 2
+                // Filter monsters within radius
+                for (child in snapshot.children) {
+                    val lat = child.child("latitude").getValue(Double::class.java) ?: continue
+                    val lng = child.child("longitude").getValue(Double::class.java) ?: continue
 
-        for (dx in -range..range) {
-            for (dy in -range..range) {
-                if (dx == 0 && dy == 0) continue
+                    if (isWithinRadius(playerLatLng, lat, lng)) {
+                        val monster = Monster.fromSnapshot(child)
+                        if (monster != null) {
+                            nearbyMonsters.add(monster)
+                        }
+                    }
+                }
 
-                val cellLat = playerLocation.latitude + (dy * gridSize)
-                val cellLon = playerLocation.longitude + (dx * gridSize)
-                val cellX = ((cellLon / gridSize) * 1000).toInt()
-                val cellY = ((cellLat / gridSize) * 1000).toInt()
-                val seed = ((cellX.toLong() and 0xFFFFFFFF) shl 32) or (cellY.toLong() and 0xFFFFFFFF)
-                val random = Random(seed)
-                val monstersInCell = random.nextInt(1, 3)
+                Log.d("GeoMon", "Found ${nearbyMonsters.size} nearby monsters")
 
-                for (i in 0 until monstersInCell) {
-                    val latOffset = (random.nextDouble() - 0.5) * gridSize * 0.8
-                    val lonOffset = (random.nextDouble() - 0.5) * gridSize * 0.8
-                    val monsterLat = cellLat + latOffset
-                    val monsterLon = cellLon + lonOffset
-                    val level = random.nextInt(1, 21)
-
-                    val speciesId = availableSpeciesIds.random(random)
-                    val speciesName = speciesId.replaceFirstChar { it.uppercase() }
-
-                    monsters.add(
-                        Monster(
-                            id = "${cellX}_${cellY}_$i",
-                            speciesId = speciesId,
-                            name = speciesName,
-                            level = level,
-                            latitude = monsterLat,
-                            longitude = monsterLon
-                        )
-                    )
+                // Generate more if below threshold
+                if (nearbyMonsters.size < monsterThreshold) {
+                    val toGenerate = monsterThreshold - nearbyMonsters.size
+                    generateAndUploadMonsters(playerLatLng, toGenerate) {
+                        // Re-fetch and display after generation completes
+                        fetchAndDisplayNearbyMonsters(playerLatLng)
+                    }
+                } else {
+                    // Display existing nearby monsters on map
+                    displayMonstersOnMap(nearbyMonsters)
                 }
             }
-        }
-        
-        Log.d("GeoMon", "Generated ${monsters.size} monsters")
-        return monsters
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("GeoMon", "Firebase error: ${error.message}")
+            }
+        })
     }
 
-    private fun spawnMonstersOnMap(monsters: List<Monster>) {
+    private fun isWithinRadius(center: LatLng, lat: Double, lng: Double): Boolean {
+        val latDiff = Math.abs(center.latitude - lat)
+        val lngDiff = Math.abs(center.longitude - lng)
+        return latDiff <= nearbyRadius && lngDiff <= nearbyRadius
+    }
+
+    private fun fetchAndDisplayNearbyMonsters(playerLatLng: LatLng) {
+        FirebaseManager.monstersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val nearbyMonsters = mutableListOf<Monster>()
+                for (child in snapshot.children) {
+                    val lat = child.child("latitude").getValue(Double::class.java) ?: continue
+                    val lng = child.child("longitude").getValue(Double::class.java) ?: continue
+                    if (isWithinRadius(playerLatLng, lat, lng)) {
+                        val monster = Monster.fromSnapshot(child)
+                        if (monster != null) {
+                            nearbyMonsters.add(monster)
+                        }
+                    }
+                }
+                displayMonstersOnMap(nearbyMonsters)
+            }
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("GeoMon", "Firebase error: ${error.message}")
+            }
+        })
+    }
+
+    private fun generateAndUploadMonsters(center: LatLng, count: Int, onComplete: () -> Unit = {}) {
+        if (availableSpeciesIds.isEmpty()) {
+            Log.d("GeoMon", "No species available yet")
+            onComplete()
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            for (i in 0 until count) {
+                val latOffset = (Random.nextDouble() - 0.5) * nearbyRadius * 2
+                val lngOffset = (Random.nextDouble() - 0.5) * nearbyRadius * 2
+                val monsterLat = center.latitude + latOffset
+                val monsterLng = center.longitude + lngOffset
+                val level = Random.nextInt(1, 21)
+                val speciesId = availableSpeciesIds.random()
+
+                Monster.initializeByName(
+                    context = requireContext(),
+                    name = speciesId,
+                    level = level,
+                    latitude = monsterLat,
+                    longitude = monsterLng
+                )
+            }
+            Log.d("GeoMon", "Generated and uploaded $count monsters")
+            lifecycleScope.launch(Dispatchers.Main) {
+                onComplete()
+            }
+        }
+    }
+
+    private fun displayMonstersOnMap(monsters: List<Monster>) {
+        // Clear old markers
+        monsterMarkers.forEach { it.remove() }
+        monsterMarkers.clear()
+
+        // Add new markers with unique color (green)
         monsters.forEach { monster ->
             val marker = googleMap.addMarker(
                 MarkerOptions()
                     .position(LatLng(monster.latitude, monster.longitude))
                     .title("${monster.name} (Lv.${monster.level})")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
             )
             marker?.tag = monster
+            marker?.let { monsterMarkers.add(it) }
         }
-        Log.d("GeoMon", "Spawned ${monsters.size} markers")
+        Log.d("GeoMon", "Displayed ${monsters.size} monsters on map")
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        trackingViewModel.serviceStarted.value = false
+        requireActivity().unbindService(trackingViewModel)
+        requireActivity().stopService(serviceIntent)
     }
 }
