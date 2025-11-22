@@ -57,7 +57,7 @@ class Monster(
             val dao = db.speciesDao()
 
 
-            val tempSpecies = dao.getByIdNow(name.lowercase())
+            val tempSpecies = dao.getByIdNow(name)
 
             if (tempSpecies == null) {
                 Log.e("Monster", "Species not found in database: ${name.lowercase()}")
@@ -121,6 +121,17 @@ class Monster(
 
         fun fromSnapshot(snapshot: DataSnapshot): Monster? {
             return try {
+                // Parse move names and initialize Move objects
+                val move1Name = snapshot.child("move1").getValue(String::class.java)
+                val move2Name = snapshot.child("move2").getValue(String::class.java)
+                val move3Name = snapshot.child("move3").getValue(String::class.java)
+                val move4Name = snapshot.child("move4").getValue(String::class.java)
+
+                val move1 = move1Name?.let { Move.initializeByName(it) }
+                val move2 = move2Name?.let { Move.initializeByName(it) }
+                val move3 = move3Name?.let { Move.initializeByName(it) }
+                val move4 = move4Name?.let { Move.initializeByName(it) }
+
                 Monster(
                     id = snapshot.key ?: "",
                     name = snapshot.child("name").getValue(String::class.java) ?: return null,
@@ -136,6 +147,11 @@ class Monster(
                     defense = snapshot.child("defense").getValue(Float::class.java) ?: 20f,
                     specialDefense = snapshot.child("specialDefense").getValue(Float::class.java) ?: 20f,
                     speed = snapshot.child("speed").getValue(Float::class.java) ?: 20f,
+                    move1 = move1,
+                    move2 = move2,
+                    move3 = move3,
+                    move4 = move4,
+                    learnableMoves = listOfNotNull(move1, move2, move3, move4),
                     isFainted = snapshot.child("isFainted").getValue(Boolean::class.java) ?: false,
                     latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
                     longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0
