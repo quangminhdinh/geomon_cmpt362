@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 import android.content.Context
+import com.example.myapplication.PermissionHandler
 
 class HomeFragment : Fragment(), OnMapReadyCallback {
     private var _binding: FragmentHomeBinding? = null
@@ -57,6 +58,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
     private val nearbyRadius = 0.01 // ~1km radius
     private val monsterThreshold = 10 // minimum monsters in area
     private var playerMonsterId: String? = null
+    private lateinit var permissionHandler: PermissionHandler
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -122,6 +124,9 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                 }
             }
         }
+
+        // Initialize permission handler
+        permissionHandler = PermissionHandler(requireActivity())
 
         // Initialize map
         val mapFragment = childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
@@ -199,7 +204,10 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
             }
         }
 
-        initTrackingService()
+        // Check permissions before starting tracking service
+        if (permissionHandler.checkAndRequestPermissions()) {
+            initTrackingService()
+        }
     }
 
     private fun checkAndSpawnMonsters() {
@@ -320,6 +328,22 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
             marker?.let { monsterMarkers.add(it) }
         }
         Log.d("GeoMon", "Displayed ${monsters.size} monsters on map")
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        permissionHandler.handlePermissionResult(
+            requestCode,
+            permissions,
+            grantResults,
+            onGranted = { initTrackingService() },
+            onDenied = { Log.e("GeoMon", "Location permission denied") }
+        )
     }
 
     override fun onDestroyView() {
