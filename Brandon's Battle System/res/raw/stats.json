@@ -1,0 +1,77 @@
+[
+  {
+    "id": "Electricoon",
+    "name": "Electricoon",
+    "types": ["electric"],
+    "baseStats": {
+      "hp": 80,
+      "atk": 55,
+      "def": 40,
+      "spa": 60,
+      "spd": 50,
+      "spe": 150
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 112,
+    "catchRate": 200,
+    "evolution": {
+      "to": "Ultra",
+      "method": "level"
+    },
+    "move1": "Flash",
+    "move2": "Storm Surge",
+    "move3": "Thundering Shuriken",
+    "move4": "Mud Shot",
+    "sprite": "sprites/Electricoon.png"
+  },
+
+  {
+    "id": "Watercoon",
+    "name": "Watercoon",
+    "types": ["water"],
+    "baseStats": {
+      "hp": 100,
+      "atk": 90,
+      "def": 50,
+      "spa": 90,
+      "spd": 50,
+      "spe": 130
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 218,
+    "catchRate": 75,
+    "evolution": {
+      "from": "nothing"
+    },
+    "move1": "Fin Smash",
+    "move2": "Hydro Vortex",
+    "move3": "Punch",
+    "move4": "Mud Shot",
+    "sprite": "sprites/Watercoon.png"
+  },
+
+  {
+    "id": "Molediver",
+    "name": "Molediver",
+    "types": ["ground"],
+    "baseStats": {
+      "hp": 50,
+      "atk": 100,
+      "def": 50,
+      "spa": 50,
+      "spd": 50,
+      "spe": 150
+    },
+    "growthRate": "fast",
+    "baseExp": 100,
+    "catchRate": 111,
+    "evolution": {
+      "from": "non"
+    },
+    "move1": "Flash Frost",
+    "move2": "Furious Bite",
+    "move3": "Ignite",
+    "move4": "Grasp",
+    "sprite": "sprites/Molediver.png"
+  }
+]

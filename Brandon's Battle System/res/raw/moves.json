@@ -1,0 +1,51 @@
+[
+  { "id": "Punch", "name": "Punch", "type1": "Normal", "type2": null, "type3": null, "baseDamage": 40, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Quick Attack", "name": "Quick Attack", "type1": "Normal", "type2": null, "type3": null, "baseDamage": 40, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Slash", "name": "Slash", "type1": "Normal", "type2": null, "type3": null, "baseDamage": 70, "category": "physical", "accuracy": 0.95, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Breath of Light", "name": "Breath of Light", "type1": "Normal", "type2": null, "type3": null, "baseDamage": 150, "category": "special", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Ignite", "name": "Ignite", "type1": "Fire", "type2": null, "type3": null, "baseDamage": 40, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Searing Charge", "name": "Searing Charge", "type1": "Fire", "type2": null, "type3": null, "baseDamage": 90, "category": "physical", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Sunfire Blast", "name": "Sunfire Blast", "type1": "Fire", "type2": null, "type3": null, "baseDamage": 110, "category": "special", "accuracy": 0.85, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Volcanic Rupture", "name": "Volcanic Rupture", "type1": "Fire", "type2": null, "type3": null, "baseDamage": 80, "category": "special", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Water Trident", "name": "Water Trident", "type1": "Water", "type2": null, "type3": null, "baseDamage": 100, "category": "special", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Fin Smash", "name": "Fin Smash", "type1": "Water", "type2": null, "type3": null, "baseDamage":80, "category": "physical", "accuracy": 0.8, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Hydro Vortex", "name": "Hydro Vortex", "type1": "Water", "type2": null, "type3": null, "baseDamage": 110, "category": "special", "accuracy": 0.8, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Aqua Burst", "name": "Aqua Burst", "type1": "Water", "type2": null, "type3": null, "baseDamage": 60, "category": "physical", "accuracy": 1.0, "priority": 1, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Grasp", "name": "Grasp", "type1": "Grass", "type2": null, "type3": null, "baseDamage": 45, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Deadly Spine", "name": "Deadly Spine", "type1": "Grass", "type2": null, "type3": null, "baseDamage": 200, "category": "physical", "accuracy": 0.50, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Solar Beam", "name": "Solar Beam", "type1": "Grass", "type2": null, "type3": null, "baseDamage": 120, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Thorn Blade", "name": "Thorn Blade", "type1": "Grass", "type2": null, "type3": null, "baseDamage": 80, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Flash", "name": "Flash", "type1": "Electric", "type2": null, "type3": null, "baseDamage": 40, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Thundering Shuriken", "name": "Thundering Shuriken", "type1": "Electric", "type2": null, "type3": null, "baseDamage": 100, "category": "special", "accuracy": 0.8, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Storm Surge", "name": "Storm Surge", "type1": "Electric", "type2": null, "type3": null, "baseDamage": 200, "category": "special", "accuracy": 0.5, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Volt Bash", "name": "Volt Bash", "type1": "Electric", "type2": null, "type3": null, "baseDamage": 120, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Flash Frost", "name": "Flash Frost", "type1": "Ice", "type2": null, "type3": null, "baseDamage": 80, "category": "special", "accuracy": 0.9, "priority": 1, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Frostbite", "name": "Frostbite", "type1": "Ice", "type2": null, "type3": null, "baseDamage": 40, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Blizzard", "name": "Blizzard", "type1": "Ice", "type2": null, "type3": null, "baseDamage": 110, "category": "special", "accuracy": 0.7, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Frost Breath", "name": "Frost Breath", "type1": "Ice", "type2": null, "type3": null, "baseDamage": 60, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Furious Bite", "name": "Furious Bite", "type1": "Rock", "type2": null, "type3": null, "baseDamage": 50, "category": "physical", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Stone Punch", "name": "Stone Punch", "type1": "Rock", "type2": null, "type3": null, "baseDamage": 75, "category": "physical", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Rock Edge", "name": "Rock Edge", "type1": "Rock", "type2": null, "type3": null, "baseDamage": 100, "category": "physical", "accuracy": 0.8, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Ancient Power", "name": "Ancient Power", "type1": "Rock", "type2": null, "type3": null, "baseDamage": 60, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Mud Shot", "name": "Mud Shot", "type1": "Ground", "type2": null, "type3": null, "baseDamage": 55, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Earthquake", "name": "Earthquake", "type1": "Ground", "type2": null, "type3": null, "baseDamage": 100, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Tunnel", "name": "Tunnel", "type1": "Ground", "type2": null, "type3": null, "baseDamage": 60, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Sand Blast", "name": "Sand Blast", "type1": "Ground", "type2": null, "type3": null, "baseDamage": 35, "category": "physical", "accuracy": 0.9, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Shadow Ball", "name": "Shadow Ball", "type1": "Ghost", "type2": null, "type3": null, "baseDamage": 80, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Shade Slash", "name": "Shade Slash", "type1": "Ghost", "type2": null, "type3": null, "baseDamage": 40, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Spirit Dive", "name": "Spirit Dive", "type1": "Ghost", "type2": null, "type3": null, "baseDamage": 70, "category": "physical", "accuracy": 0.4, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Hex", "name": "Hex", "type1": "Ghost", "type2": null, "type3": null, "baseDamage": 65, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+
+  { "id": "Dragon Breath", "name": "Dragon Breath", "type1": "Dragon", "type2": null, "type3": null, "baseDamage": 60, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Dragon Claw", "name": "Dragon Claw", "type1": "Dragon", "type2": null, "type3": null, "baseDamage": 80, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Falling Star", "name": "Falling Star", "type1": "Dragon", "type2": null, "type3": null, "baseDamage": 85, "category": "special", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null },
+  { "id": "Outrage", "name": "Outrage", "type1": "Dragon", "type2": null, "type3": null, "baseDamage": 120, "category": "physical", "accuracy": 1.0, "priority": 0, "ppMax": 20, "healing": 0, "otherEffect": null }
+]
