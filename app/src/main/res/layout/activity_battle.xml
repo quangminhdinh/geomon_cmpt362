@@ -53,7 +53,23 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Player sprite -->
+    <!-- Announcement text -->
+    <TextView
+        android:id="@+id/tvAnnouncement"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:text="Battle Start!"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintTop_toBottomOf="@id/hpOpponent"
+        app:layout_constraintBottom_toTopOf="@id/imgPlayer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Player sprite placeholder -->
     <TextView
         android:id="@+id/imgPlayer"
         android:layout_width="180dp"
@@ -142,11 +158,12 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Battle Log -->
+    <!-- RecyclerView for battle log (hidden/not used but BattleActivity references it) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/logList"
         android:layout_width="0dp"
-        android:layout_height="120dp"
+        android:layout_height="1dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
