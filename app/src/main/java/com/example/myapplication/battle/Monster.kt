@@ -1,4 +1,3 @@
-// Monster.kt
 package com.example.myapplication.battle
 import java.io.Serializable
 import android.content.Context

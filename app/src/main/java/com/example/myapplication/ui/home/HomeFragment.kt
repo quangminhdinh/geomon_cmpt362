@@ -99,8 +99,8 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
 
                 // Launch battle with monster names
                 val intent = Intent(requireContext(), BattleActivity::class.java).apply {
-                    putExtra("extra_player_name", "Watercoon") // Default player monster
-                    putExtra("extra_enemy_name", monster.speciesId) // Enemy species ID as name
+                    putExtra(BattleActivity.EXTRA_PLAYER_NAME, "Molediver") // Default player monster
+                    putExtra(BattleActivity.EXTRA_ENEMY_NAME, monster.speciesId) // Enemy species ID as name
                 }
                 startActivity(intent)
                 true
