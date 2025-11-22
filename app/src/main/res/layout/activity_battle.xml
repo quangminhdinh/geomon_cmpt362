@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/battleRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="12dp">
+
+    <!-- Run button  -->
+    <Button
+        android:id="@+id/btnRun"
+        android:layout_width="90dp"
+        android:layout_height="90dp"
+        android:text="Run"
+        android:textSize="22sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Turn counter -->
+    <TextView
+        android:id="@+id/tvTurn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Turn 1"
+        android:textStyle="bold"
+        android:textSize="18sp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Opponent name -->
+    <TextView
+        android:id="@+id/tvOpponentName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Opponent"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/tvTurn"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="8dp" />
+
+    <!-- Opponent HP -->
+    <ProgressBar
+        android:id="@+id/hpOpponent"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="240dp"
+        android:layout_height="10dp"
+        android:max="100"
+        android:progress="100"
+        app:layout_constraintTop_toBottomOf="@id/tvOpponentName"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Player sprite -->
+    <TextView
+        android:id="@+id/imgPlayer"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:gravity="center"
+        android:text="Player"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@id/moveButtons"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Player name -->
+    <TextView
+        android:id="@+id/tvPlayerName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Player"
+        android:textStyle="bold"
+        android:textSize="16sp"
+        app:layout_constraintTop_toTopOf="@id/imgPlayer"
+        app:layout_constraintStart_toEndOf="@id/imgPlayer"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Player HP -->
+    <ProgressBar
+        android:id="@+id/hpPlayer"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="0dp"
+        android:layout_height="10dp"
+        android:max="100"
+        android:progress="100"
+        app:layout_constraintTop_toBottomOf="@id/tvPlayerName"
+        app:layout_constraintStart_toEndOf="@id/imgPlayer"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Move buttons grid -->
+    <LinearLayout
+        android:id="@+id/moveButtons"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@id/logList"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnMove1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Mud Slap" />
+
+            <Button
+                android:id="@+id/btnMove2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Recover" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp">
+
+            <Button
+                android:id="@+id/btnMove3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Shadow Punch" />
+
+            <Button
+                android:id="@+id/btnMove4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Earthquake" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Battle Log -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/logList"
+        android:layout_width="0dp"
+        android:layout_height="120dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
