@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">My Application</string>
+    <string name="menu_home">Map</string>
+    <string name="menu_gallery">Gallery</string>
+    <string name="menu_slideshow">Slideshow</string>
+    <string name="action_settings">Settings</string>
+    <string name="nav_header_subtitle">GeoMon Battle System</string>
+    <string name="mud_slap">Mud Slap</string>
+    <string name="recover">Recover</string>
+    <string name="shadow_punch">Shadow Punch</string>
+    <string name="earthquake">Earthquake</string>
 </resources>
