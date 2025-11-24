@@ -95,7 +95,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             // Check if user exists in Firebase
             val user = User.fetchById(userId)
 
-            if (user == null || user.playerMonsterId.isEmpty()) {
+            if (user == null || user.monsterIds.isEmpty()) {
                 // Create new player monster
                 Log.d("GeoMon", "Creating player monster for user: $userId")
                 val playerMonster = Monster.initializeByName(
@@ -111,15 +111,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 User.createOrUpdate(
                     userId = userId,
                     displayName = "Player",
-                    playerMonsterId = playerMonster.id
+                    monsterIds = listOf(playerMonster.id)
                 )
                 Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
             } else {
-                // Verify the saved player monster still exists in Firebase
-                Log.d("GeoMon", "User exists, verifying player monster: ${user.playerMonsterId}")
-                val existingMonster = Monster.fetchById(user.playerMonsterId)
+                // Verify the first monster still exists in Firebase
+                val firstMonsterId = user.firstMonsterId
+                Log.d("GeoMon", "User exists, verifying first monster: $firstMonsterId")
+                val existingMonster = firstMonsterId?.let { Monster.fetchById(it) }
                 if (existingMonster == null) {
-                    Log.d("GeoMon", "Player monster not found in Firebase, creating new one")
+                    Log.d("GeoMon", "First monster not found in Firebase, creating new one")
                     val playerMonster = Monster.initializeByName(
                         context = this@MainActivity,
                         name = "Molediver",
@@ -128,11 +129,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         longitude = 0.0
                     )
                     playerMonsterId = playerMonster.id
-                    User.updatePlayerMonsterId(userId, playerMonster.id)
+                    User.addMonster(userId, playerMonster.id)
                     Log.d("GeoMon", "Created new player monster: ${playerMonster.id}")
                 } else {
                     playerMonsterId = existingMonster.id
-                    Log.d("GeoMon", "Player monster verified: ${existingMonster.name} (${existingMonster.id})")
+                    Log.d("GeoMon", "First monster verified: ${existingMonster.name} (${existingMonster.id})")
                 }
             }
         }
@@ -294,13 +295,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     if (isWithinRadius(playerLatLng, lat, lng)) {
                         val monster = Monster.fromSnapshot(child)
-                        if (monster != null) {
+                        // Only include wild monsters (no owner)
+                        if (monster != null && monster.isWild) {
                             nearbyMonsters.add(monster)
                         }
                     }
                 }
 
-                Log.d("GeoMon", "Found ${nearbyMonsters.size} nearby monsters")
+                Log.d("GeoMon", "Found ${nearbyMonsters.size} nearby wild monsters")
 
                 if (nearbyMonsters.size < monsterThreshold) {
                     val toGenerate = monsterThreshold - nearbyMonsters.size
@@ -333,7 +335,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     val lng = child.child("longitude").getValue(Double::class.java) ?: continue
                     if (isWithinRadius(playerLatLng, lat, lng)) {
                         val monster = Monster.fromSnapshot(child)
-                        if (monster != null) {
+                        // Only include wild monsters (no owner)
+                        if (monster != null && monster.isWild) {
                             nearbyMonsters.add(monster)
                         }
                     }
