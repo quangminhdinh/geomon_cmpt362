@@ -41,8 +41,14 @@ class Monster(
 
     // Location fields for map spawning
     val latitude: Double = 0.0,
-    val longitude: Double = 0.0
+    val longitude: Double = 0.0,
+
+    // Owner ID - null/empty means wild monster
+    val ownerId: String? = null
 ) : Serializable {
+
+    val isWild: Boolean
+        get() = ownerId.isNullOrEmpty()
 
     companion object {
         // initializer a monster with the attributes from the appdatabase
@@ -154,7 +160,8 @@ class Monster(
                     learnableMoves = listOfNotNull(move1, move2, move3, move4),
                     isFainted = snapshot.child("isFainted").getValue(Boolean::class.java) ?: false,
                     latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
-                    longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0
+                    longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0,
+                    ownerId = snapshot.child("ownerId").getValue(String::class.java)
                 )
             } catch (e: Exception) {
                 Log.e("Monster", "Error parsing monster from snapshot: ${e.message}")
@@ -171,6 +178,13 @@ class Monster(
                 .addOnFailureListener { e ->
                     Log.e("Monster", "Error fetching monster by ID: ${e.message}")
                     continuation.resume(null)
+                }
+        }
+
+        fun setOwner(monsterId: String, ownerId: String) {
+            FirebaseManager.monstersRef.child(monsterId).child("ownerId").setValue(ownerId)
+                .addOnSuccessListener {
+                    Log.d("Monster", "Set owner $ownerId for monster $monsterId")
                 }
         }
 
@@ -249,7 +263,8 @@ class Monster(
             "move4" to move4?.name,
             "isFainted" to isFainted,
             "latitude" to latitude,
-            "longitude" to longitude
+            "longitude" to longitude,
+            "ownerId" to ownerId
         )
     }
 }
