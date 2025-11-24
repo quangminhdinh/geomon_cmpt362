@@ -39,6 +39,8 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 import android.content.Context
 import com.example.myapplication.PermissionHandler
+import com.example.myapplication.data.AuthManager
+import com.example.myapplication.data.User
 
 class HomeFragment : Fragment(), OnMapReadyCallback {
     private var _binding: FragmentHomeBinding? = null
@@ -55,6 +57,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
     private var availableSpeciesIds: List<String> = emptyList()
 
     private val monsterMarkers = mutableListOf<Marker>()
+    private val otherPlayerMarkers = mutableMapOf<String, Marker>()
     private val nearbyRadius = 0.01 // ~1km radius
     private val monsterThreshold = 10 // minimum monsters in area
     private var playerMonsterId: String? = null
@@ -72,13 +75,19 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
         val db = AppDatabase.get(requireContext())
         repository = SpeciesRepository(db.speciesDao())
 
-        // Load player monster ID from preferences
-        val prefs = requireContext().getSharedPreferences("player_data", Context.MODE_PRIVATE)
-        playerMonsterId = prefs.getString("player_monster_id", null)
-        Log.d("GeoMon", "Loaded playerMonsterId from prefs: $playerMonsterId")
-
-        // Seed database, load species, and create player monster if needed
+        // Sign in and initialize player data
         lifecycleScope.launch(Dispatchers.IO) {
+            // Sign in anonymously
+            Log.d("GeoMon", "Signing in...")
+            val firebaseUser = AuthManager.signInAnonymously()
+            if (firebaseUser == null) {
+                Log.e("GeoMon", "Failed to sign in")
+                return@launch
+            }
+            val userId = firebaseUser.uid
+            Log.d("GeoMon", "Signed in as: $userId")
+
+            // Seed database
             Log.d("GeoMon", "Starting seeder")
             Seeder.run(requireContext(), repository)
             Log.d("GeoMon", "Database transferred")
@@ -89,10 +98,12 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
             availableSpeciesIds = speciesList.map { it.id }
             Log.d("GeoMon", "Loaded ${availableSpeciesIds.size} species")
 
-            Log.d("GeoMon", "After collect - checking playerMonsterId: $playerMonsterId")
-            // Create player monster if it doesn't exist or if it's missing from Firebase
-            if (playerMonsterId == null) {
-                Log.d("GeoMon", "playerMonsterId is null, creating player monster")
+            // Check if user exists in Firebase
+            var user = User.fetchById(userId)
+
+            if (user == null || user.playerMonsterId.isEmpty()) {
+                // Create new player monster
+                Log.d("GeoMon", "Creating player monster for user: $userId")
                 val playerMonster = Monster.initializeByName(
                     context = requireContext(),
                     name = "Molediver",
@@ -101,12 +112,18 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                     longitude = 0.0
                 )
                 playerMonsterId = playerMonster.id
-                prefs.edit().putString("player_monster_id", playerMonster.id).apply()
+
+                // Create or update user with player monster ID
+                User.createOrUpdate(
+                    userId = userId,
+                    displayName = "Player",
+                    playerMonsterId = playerMonster.id
+                )
                 Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
             } else {
                 // Verify the saved player monster still exists in Firebase
-                Log.d("GeoMon", "Verifying player monster exists in Firebase: $playerMonsterId")
-                val existingMonster = Monster.fetchById(playerMonsterId!!)
+                Log.d("GeoMon", "User exists, verifying player monster: ${user.playerMonsterId}")
+                val existingMonster = Monster.fetchById(user.playerMonsterId)
                 if (existingMonster == null) {
                     Log.d("GeoMon", "Player monster not found in Firebase, creating new one")
                     val playerMonster = Monster.initializeByName(
@@ -117,9 +134,10 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                         longitude = 0.0
                     )
                     playerMonsterId = playerMonster.id
-                    prefs.edit().putString("player_monster_id", playerMonster.id).apply()
+                    User.updatePlayerMonsterId(userId, playerMonster.id)
                     Log.d("GeoMon", "Created new player monster: ${playerMonster.id}")
                 } else {
+                    playerMonsterId = existingMonster.id
                     Log.d("GeoMon", "Player monster verified: ${existingMonster.name} (${existingMonster.id})")
                 }
             }
@@ -165,8 +183,68 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
         playerMarkerOptions.position(latLng)
         playerMarker = googleMap.addMarker(playerMarkerOptions)
 
+        // Update user location in Firebase for multiplayer
+        AuthManager.userId?.let { userId ->
+            User.updateLocation(userId, latLng.latitude, latLng.longitude)
+        }
+
         // Check and spawn monsters around player
         checkAndSpawnMonsters()
+
+        // Show other players on the map
+        displayOtherPlayers(latLng)
+    }
+
+    private fun displayOtherPlayers(playerLatLng: LatLng) {
+        val currentUserId = AuthManager.userId ?: return
+
+        FirebaseManager.usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val activeThreshold = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes
+
+                for (child in snapshot.children) {
+                    val userId = child.key ?: continue
+
+                    // Skip current user
+                    if (userId == currentUserId) continue
+
+                    val user = User.fromSnapshot(child) ?: continue
+
+                    // Skip inactive users
+                    if (user.lastActive < activeThreshold) {
+                        // Remove marker if exists
+                        otherPlayerMarkers[userId]?.remove()
+                        otherPlayerMarkers.remove(userId)
+                        continue
+                    }
+
+                    // Check if within visible radius
+                    if (!isWithinRadius(playerLatLng, user.latitude, user.longitude)) {
+                        otherPlayerMarkers[userId]?.remove()
+                        otherPlayerMarkers.remove(userId)
+                        continue
+                    }
+
+                    // Update or create marker
+                    val existingMarker = otherPlayerMarkers[userId]
+                    if (existingMarker != null) {
+                        existingMarker.position = LatLng(user.latitude, user.longitude)
+                    } else {
+                        val marker = googleMap.addMarker(
+                            MarkerOptions()
+                                .position(LatLng(user.latitude, user.longitude))
+                                .title(user.displayName)
+                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+                        )
+                        marker?.let { otherPlayerMarkers[userId] = it }
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("GeoMon", "Failed to fetch other players: ${error.message}")
+            }
+        })
     }
 
     override fun onMapReady(map: GoogleMap) {
