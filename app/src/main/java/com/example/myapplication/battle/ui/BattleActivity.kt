@@ -3,6 +3,7 @@ package com.example.myapplication.battle.ui
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.activity.ComponentActivity
@@ -31,6 +32,9 @@ class BattleActivity : ComponentActivity() {
 
     private lateinit var tvAnnouncement: TextView
 
+    private lateinit var imgPlayer: ImageView
+    private lateinit var imgOpponent: ImageView
+
     private lateinit var logList: RecyclerView
 
     private lateinit var btnMove1: Button
@@ -40,17 +44,11 @@ class BattleActivity : ComponentActivity() {
 
     private lateinit var btnRun: Button
 
-    private lateinit var playerTeam: List<Monster>// take from list later, implement teams for both enemy and player
-    private lateinit var enemyTeam: List<Monster>
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battle)
 
-
-
-
-        tvPlayerName = findViewById(R.id.tvPlayerName)
+        // Initialize UI references
         tvPlayerName    = findViewById(R.id.tvPlayerName)
         tvOpponentName  = findViewById(R.id.tvOpponentName)
 
@@ -58,14 +56,17 @@ class BattleActivity : ComponentActivity() {
         hpOpponent      = findViewById(R.id.hpOpponent)
 
         tvAnnouncement  = findViewById(R.id.tvAnnouncement)
-        logList         = findViewById(R.id.logList)
 
+        imgPlayer       = findViewById(R.id.imgPlayer)
+        imgOpponent     = findViewById(R.id.imgOpponent)
+
+        logList         = findViewById(R.id.logList)
 
         btnMove1 = findViewById(R.id.btnMove1)
         btnMove2 = findViewById(R.id.btnMove2)
         btnMove3 = findViewById(R.id.btnMove3)
         btnMove4 = findViewById(R.id.btnMove4)
-        btnRun = findViewById(R.id.btnRun)
+        btnRun   = findViewById(R.id.btnRun)
 
         val playerId = intent.getStringExtra(EXTRA_PLAYER_ID)
         val enemyId = intent.getStringExtra(EXTRA_ENEMY_ID)
@@ -96,21 +97,46 @@ class BattleActivity : ComponentActivity() {
             }
             opponent = fetchedEnemy
 
+            // Update UI
             tvPlayerName.text = player.name
             tvOpponentName.text = opponent.name
+
+            // Load sprites
+            loadMonsterSprite(player, imgPlayer)
+            loadMonsterSprite(opponent, imgOpponent)
+
             updateHpUi()
             setupMoveButtons()
             logStats()
         }
-
-
     }
 
-    // UI Setup
+    // ===== SPRITE LOADING =====
+    private fun loadMonsterSprite(monster: Monster, imageView: ImageView) {
+        // Convert monster name to lowercase for drawable lookup
+        // e.g., "Watercoon" -> "watercoon"
+        val spriteName = monster.name.lowercase().replace(" ", "_")
 
+        // Get drawable resource ID
+        val resourceId = resources.getIdentifier(
+            spriteName,
+            "drawable",
+            packageName
+        )
+
+        if (resourceId != 0) {
+            // Sprite found, load it
+            imageView.setImageResource(resourceId)
+            Log.d("BattleActivity", "Loaded sprite for ${monster.name}: $spriteName")
+        } else {
+            // Sprite not found, use placeholder
+            Log.w("BattleActivity", "Sprite not found for ${monster.name}, using placeholder")
+            imageView.setImageResource(R.drawable.ic_launcher_foreground) // Default placeholder
+        }
+    }
+
+    // ===== UI SETUP =====
     private fun setupMoveButtons() {
-
-
         btnMove1.text = player.move1?.name ?: "-"
         btnMove2.text = player.move2?.name ?: "-"
         btnMove3.text = player.move3?.name ?: "-"
@@ -120,7 +146,6 @@ class BattleActivity : ComponentActivity() {
         btnMove2.setOnClickListener { onPlayerMoveSelected(player.move2) }
         btnMove3.setOnClickListener { onPlayerMoveSelected(player.move3) }
         btnMove4.setOnClickListener { onPlayerMoveSelected(player.move4) }
-
 
         btnRun.setOnClickListener { finish() }
     }
@@ -140,17 +165,14 @@ class BattleActivity : ComponentActivity() {
         hpOpponent.progress = opponent.currentHp.toInt()
     }
 
-
     private fun appendLog(message: String) {
         tvAnnouncement.text = message
     }
 
-    // Battle Logic
-
+    // ===== BATTLE LOGIC =====
     private fun onPlayerMoveSelected(chosenMove: Move?) {
         if (chosenMove == null) return
         if (player.isFainted || opponent.isFainted) return
-
 
         lifecycleScope.launch {
             setMoveButtonsEnabled(false)
@@ -180,7 +202,7 @@ class BattleActivity : ComponentActivity() {
             }
         }
     }
-    //If the move hits by calling doeshit(), calculate damage through damageCalc. Log appends depending on the move
+
     private suspend fun performAttack(attacker: Monster, defender: Monster, move: Move, isPlayer: Boolean) {
         if (!move.doesHit()) {
             appendLog("${attacker.name}'s ${move.name} missed!")
@@ -196,22 +218,11 @@ class BattleActivity : ComponentActivity() {
         updateHpUi()
         delay(400)
     }
-    /*
-    private fun damageCalc(attacker: Monster, move: Move, receiver: Monster): Float {
-        // Simple damage: use Move.getDamage() from your Move.kt
-        return move.getDamage(
-            attackerLevel   = attacker.level,
-            attackerAttack  = attacker.attack,
-            defenderDefense = receiver.defense
-        )
-    }
 
-     */
-    //Randomly pick 1 of the available moves
     private fun aiChoice(monster: Monster): Move {
         val moves = listOfNotNull(monster.move1, monster.move2, monster.move3, monster.move4)
         if (moves.isEmpty()) {
-            return Move.initializeByName("Tackle")
+            return Move.initializeByName("tackle")
         }
         val index = Random.nextInt(moves.size)
         return moves[index]
@@ -235,11 +246,12 @@ class BattleActivity : ComponentActivity() {
         const val EXTRA_ENEMY_ID    = "extra_enemy_id"
     }
 
+    // ===== DEBUG LOGGING =====
     private fun logStats() {
         logMonsterStats("PLAYER", player)
         logMonsterStats("ENEMY", opponent)
     }
-//debugging stats
+
     private fun logMonsterStats(tag: String, mon: Monster) {
         Log.d("BattleStats", "[$tag] ${mon.name}")
         Log.d("BattleStats", "[$tag] Level: ${mon.level}")
@@ -254,6 +266,4 @@ class BattleActivity : ComponentActivity() {
         mon.move3?.let { Log.d("BattleStats", "   Move3: ${it.name} (Power ${it.baseDamage})") }
         mon.move4?.let { Log.d("BattleStats", "   Move4: ${it.name} (Power ${it.baseDamage})") }
     }
-
-
 }
