@@ -17,6 +17,9 @@ import com.example.myapplication.battle.Monster
 import com.example.myapplication.battle.Move
 import com.example.myapplication.R
 import com.example.myapplication.battle.damageCalc
+import com.example.myapplication.data.AuthManager
+import com.example.myapplication.data.User
+import com.example.myapplication.data.FirebaseManager
 
 class BattleActivity : ComponentActivity() {
 
@@ -43,6 +46,7 @@ class BattleActivity : ComponentActivity() {
     private lateinit var btnMove4: Button
 
     private lateinit var btnRun: Button
+    private lateinit var btnCapture: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,7 +70,8 @@ class BattleActivity : ComponentActivity() {
         btnMove2 = findViewById(R.id.btnMove2)
         btnMove3 = findViewById(R.id.btnMove3)
         btnMove4 = findViewById(R.id.btnMove4)
-        btnRun   = findViewById(R.id.btnRun)
+        btnRun     = findViewById(R.id.btnRun)
+        btnCapture = findViewById(R.id.btnCapture)
 
         val playerId = intent.getStringExtra(EXTRA_PLAYER_ID)
         val enemyId = intent.getStringExtra(EXTRA_ENEMY_ID)
@@ -148,6 +153,57 @@ class BattleActivity : ComponentActivity() {
         btnMove4.setOnClickListener { onPlayerMoveSelected(player.move4) }
 
         btnRun.setOnClickListener { finish() }
+        btnCapture.setOnClickListener { attemptCapture() }
+    }
+
+    private fun attemptCapture() {
+        if (player.isFainted || opponent.isFainted) return
+
+        lifecycleScope.launch {
+            setMoveButtonsEnabled(false)
+            btnCapture.isEnabled = false
+
+            // Calculate capture probability based on opponent's HP percentage
+            // Lower HP = higher chance (base 20% + up to 60% bonus for low HP)
+            val hpPercent = opponent.currentHp / opponent.maxHp
+            val captureChance = 0.2 + (1 - hpPercent) * 0.6
+
+            appendLog("Attempting to capture ${opponent.name}...")
+            delay(1000)
+
+            val roll = Random.nextDouble()
+            if (roll < captureChance) {
+                // Capture successful
+                appendLog("${opponent.name} was captured!")
+
+                // Add monster to player's collection
+                val userId = AuthManager.userId
+                if (userId != null) {
+                    User.addMonster(userId, opponent.id)
+                    // Set owner on monster (marks it as not wild)
+                    Monster.setOwner(opponent.id, userId)
+                    Log.d("BattleActivity", "Monster ${opponent.id} captured by user $userId")
+                }
+
+                delay(1500)
+                finish()
+            } else {
+                // Capture failed - opponent gets a free attack
+                appendLog("Capture failed!")
+                delay(800)
+
+                // Opponent attacks
+                val aiMove = aiChoice(opponent)
+                performAttack(attacker = opponent, defender = player, move = aiMove, isPlayer = false)
+                updateHpUi()
+                checkBattleEnd()
+
+                if (!player.isFainted && !opponent.isFainted) {
+                    setMoveButtonsEnabled(true)
+                    btnCapture.isEnabled = true
+                }
+            }
+        }
     }
 
     private fun setMoveButtonsEnabled(enabled: Boolean) {
