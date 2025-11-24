@@ -141,6 +141,7 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
                     Log.d("GeoMon", "Player monster verified: ${existingMonster.name} (${existingMonster.id})")
                 }
             }
+
         }
 
         // Initialize permission handler
@@ -152,6 +153,11 @@ class HomeFragment : Fragment(), OnMapReadyCallback {
         trackingViewModel = ViewModelProvider(requireActivity()).get(TrackingViewModel::class.java)
 
         mapFragment?.getMapAsync(this)
+
+        // Setup menu button
+        binding.btnMenu.setOnClickListener {
+            MenuDialogFragment().show(childFragmentManager, MenuDialogFragment.TAG)
+        }
 
         return root
     }
