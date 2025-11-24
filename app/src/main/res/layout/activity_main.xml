@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
         android:contentDescription="Menu"
-        android:src="@android:drawable/ic_menu_preferences"
+        android:src="@android:drawable/ic_menu_more"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:backgroundTint="@android:color/white"
