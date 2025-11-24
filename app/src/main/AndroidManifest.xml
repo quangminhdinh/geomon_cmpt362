@@ -37,6 +37,12 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
 
+        <!-- PokedexActivity for viewing captured monsters -->
+        <activity
+            android:name=".ui.pokedex.PokedexActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light" />
+
         <!-- Keep MapActivity for legacy support (not launcher) -->
         <activity
             android:name=".MapActivity"

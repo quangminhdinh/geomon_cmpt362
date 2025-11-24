@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.home
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -8,6 +9,7 @@ import android.widget.Button
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import com.example.myapplication.R
+import com.example.myapplication.ui.pokedex.PokedexActivity
 
 class MenuDialogFragment : DialogFragment() {
 
@@ -33,7 +35,8 @@ class MenuDialogFragment : DialogFragment() {
         }
 
         btnPokedex.setOnClickListener {
-            Toast.makeText(context, "Pokedex - Coming soon", Toast.LENGTH_SHORT).show()
+            dismiss()
+            startActivity(Intent(requireContext(), PokedexActivity::class.java))
         }
 
         btnItems.setOnClickListener {
