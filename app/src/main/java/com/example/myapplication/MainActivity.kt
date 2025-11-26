@@ -142,7 +142,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             } else {
                 // Verify the first monster still exists in Firebase
                 val firstMonsterId = user.firstMonsterId
-                Log.d("GeoMon", "User exists, verifying first monster: $firstMonsterId")
+                val index = user.activeMonsterIndex
+                Log.d("GeoMon", "User exists, verifying first monster: $index")
                 val existingMonster = firstMonsterId?.let { Monster.fetchById(it) }
                 if (existingMonster == null) {
                     Log.d("GeoMon", "First monster not found in Firebase, creating new one")
@@ -198,6 +199,44 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             Log.d("GeoMon", "Received location update: $it")
             updateMap(it)
         })
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // When coming back from MonsterInfoActivity, refresh active monster
+        refreshPlayerMonsterFromUser()
+    }
+    
+    //refresh for choosing the starting monster
+    private fun refreshPlayerMonsterFromUser() {
+        val userId = AuthManager.userId ?: return
+
+        FirebaseManager.usersRef.child(userId).get()
+            .addOnSuccessListener { snapshot ->
+
+                val activeIndex = snapshot.child("activeMonsterIndex").getValue(Int::class.java) ?: 0
+
+
+                val monsterIds = mutableListOf<String>()
+                snapshot.child("monsterIds").children.forEach { child ->
+                    child.getValue(String::class.java)?.let { monsterIds.add(it) }
+                }
+
+                val chosenId = monsterIds.getOrNull(activeIndex) ?: monsterIds.firstOrNull()
+
+                if (chosenId != null) {
+                    playerMonsterId = chosenId
+                    Log.d(
+                        "GeoMon",
+                        "Refreshed active player monster: id=$playerMonsterId index=$activeIndex"
+                    )
+                } else {
+                    Log.e("GeoMon", "No monsterIds found for user when refreshing player monster")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("GeoMon", "Failed to refresh player monster: ${e.message}")
+            }
     }
 
     private fun updateMap(latLng: LatLng) {

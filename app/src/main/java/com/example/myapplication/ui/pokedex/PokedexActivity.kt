@@ -1,5 +1,6 @@
 package com.example.myapplication.ui.pokedex
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -29,7 +30,13 @@ class PokedexActivity : AppCompatActivity() {
         rvPokedex = findViewById(R.id.rvPokedex)
         btnBack = findViewById(R.id.btnBack)
 
-        adapter = PokedexAdapter(monsterList)
+        adapter = PokedexAdapter(monsterList) { monster, index ->
+            val intent = Intent(this, MonsterInfoActivity::class.java)
+            intent.putExtra("monster_id", monster.id)
+            intent.putExtra("monster_index", index)
+            startActivity(intent)
+        }
+        
         rvPokedex.adapter = adapter
 
         btnBack.setOnClickListener { finish() }

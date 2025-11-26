@@ -31,6 +31,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.pokedex.MonsterInfoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light" />
+
         <!-- BattleActivity for battles -->
         <activity
             android:name=".battle.ui.BattleActivity"
