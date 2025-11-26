@@ -11,11 +11,12 @@ data class User(
     val monsterIds: List<String> = emptyList(), // List of owned monster IDs
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
-    val lastActive: Long = System.currentTimeMillis()
+    val lastActive: Long = System.currentTimeMillis(),
+    val activeMonsterIndex: Int = 0
 ) {
     // Get the first monster ID (used for battles)
     val firstMonsterId: String?
-        get() = monsterIds.firstOrNull()
+        get() = monsterIds.getOrNull(activeMonsterIndex)
 
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -23,7 +24,8 @@ data class User(
             "monsterIds" to monsterIds,
             "latitude" to latitude,
             "longitude" to longitude,
-            "lastActive" to lastActive
+            "lastActive" to lastActive,
+            "activeMonsterIndex" to activeMonsterIndex
         )
     }
 
@@ -36,13 +38,17 @@ data class User(
                     child.getValue(String::class.java)?.let { monsterIdsList.add(it) }
                 }
 
+                val indexMonster = snapshot.child("activeMonsterIndex").getValue(Int::class.java) ?: 0
+                Log.d("GeoMon", "activeMonsterIndex from Firebase = $indexMonster")
+
                 User(
                     id = snapshot.key ?: "",
                     displayName = snapshot.child("displayName").getValue(String::class.java) ?: "",
                     monsterIds = monsterIdsList,
                     latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
                     longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0,
-                    lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: 0L
+                    lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: 0L,
+                    activeMonsterIndex = indexMonster
                 )
             } catch (e: Exception) {
                 Log.e("User", "Error parsing user from snapshot: ${e.message}")
@@ -75,7 +81,8 @@ data class User(
                 monsterIds = monsterIds,
                 latitude = latitude,
                 longitude = longitude,
-                lastActive = System.currentTimeMillis()
+                lastActive = System.currentTimeMillis(),
+                activeMonsterIndex = 0
             )
 
             FirebaseManager.usersRef.child(userId).setValue(user.toMap())
@@ -114,6 +121,22 @@ data class User(
                         )
                     )
                     Log.d("User", "Added monster $monsterId to user $userId")
+                }
+        }
+
+        fun setUserActiveMonster(userId: String, index: Int) {
+            val updates = mapOf(
+                "activeMonsterIndex" to index,
+                "lastActive" to System.currentTimeMillis()
+            )
+
+            FirebaseManager.usersRef.child(userId)
+                .updateChildren(updates)
+                .addOnSuccessListener {
+                    Log.d("User", "activeMonsterIndex updated: $index, user: $userId")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("User", "activeMonsterIndex failed updated: ${e.message}")
                 }
         }
 
