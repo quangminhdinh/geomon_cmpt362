@@ -16,6 +16,7 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var googleMap: GoogleMap
     private lateinit var permissionHandler: PermissionHandler
+
     private val playerLocation = LatLng(49.2606, -123.2460)
     private var mapReady = false
 
