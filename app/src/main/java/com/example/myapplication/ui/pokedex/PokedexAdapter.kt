@@ -9,8 +9,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
 import com.example.myapplication.battle.Monster
 
-class PokedexAdapter(private val monsters: List<Monster>) :
-    RecyclerView.Adapter<PokedexAdapter.ViewHolder>() {
+class PokedexAdapter(
+    private val monsters: List<Monster>,
+    private val onItemClick: (Monster, Int) -> Unit
+) : RecyclerView.Adapter<PokedexAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val imgMonster: ImageView = view.findViewById(R.id.imgMonster)
@@ -29,14 +31,15 @@ class PokedexAdapter(private val monsters: List<Monster>) :
         holder.tvMonsterName.text = monster.name
         holder.tvMonsterLevel.text = "Lv. ${monster.level}"
 
-        // Load sprite
         val context = holder.itemView.context
         val spriteName = monster.name.lowercase().replace(" ", "_")
         val resourceId = context.resources.getIdentifier(spriteName, "drawable", context.packageName)
-        if (resourceId != 0) {
-            holder.imgMonster.setImageResource(resourceId)
-        } else {
-            holder.imgMonster.setImageResource(R.drawable.ic_launcher_foreground)
+        holder.imgMonster.setImageResource(
+            if (resourceId != 0) resourceId else R.drawable.ic_launcher_foreground
+        )
+
+        holder.itemView.setOnClickListener {
+            onItemClick(monster, position)
         }
     }
 

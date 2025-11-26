@@ -42,12 +42,17 @@
             android:name=".ui.pokedex.PokedexActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
+        <activity
+            android:name=".ui.pokedex.MonsterInfoActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AppCompat.Light" />
 
         <!-- Keep MapActivity for legacy support (not launcher) -->
         <activity
             android:name=".MapActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
+
 
         <!-- TrackingService for location updates -->
         <service

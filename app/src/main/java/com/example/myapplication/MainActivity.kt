@@ -114,9 +114,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     monsterIds = listOf(playerMonster.id)
                 )
                 Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
+
             } else {
                 // Verify the first monster still exists in Firebase
+
                 val firstMonsterId = user.firstMonsterId
+                val index = user.activeMonsterIndex
+                Log.d("user.activeMonsterIndex", "User exists, verifying first monster's : $index")
                 Log.d("GeoMon", "User exists, verifying first monster: $firstMonsterId")
                 val existingMonster = firstMonsterId?.let { Monster.fetchById(it) }
                 if (existingMonster == null) {
@@ -419,4 +423,42 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         unbindService(trackingViewModel)
         stopService(serviceIntent)
     }
+    //When returning to the MainActivity , refresh activeMonsterIndex
+    override fun onResume() {
+        super.onResume()
+        // When coming back from MonsterInfoActivity, refresh active monster
+        refreshPlayerMonsterFromUser()
+    }
+    //refresh for choosing the starting monster
+    private fun refreshPlayerMonsterFromUser() {
+        val userId = AuthManager.userId ?: return
+
+        FirebaseManager.usersRef.child(userId).get()
+            .addOnSuccessListener { snapshot ->
+
+                val activeIndex = snapshot.child("activeMonsterIndex").getValue(Int::class.java) ?: 0
+
+
+                val monsterIds = mutableListOf<String>()
+                snapshot.child("monsterIds").children.forEach { child ->
+                    child.getValue(String::class.java)?.let { monsterIds.add(it) }
+                }
+
+                val chosenId = monsterIds.getOrNull(activeIndex) ?: monsterIds.firstOrNull()
+
+                if (chosenId != null) {
+                    playerMonsterId = chosenId
+                    Log.d(
+                        "GeoMon",
+                        "Refreshed active player monster: id=$playerMonsterId index=$activeIndex"
+                    )
+                } else {
+                    Log.e("GeoMon", "No monsterIds found for user when refreshing player monster")
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.e("GeoMon", "Failed to refresh player monster: ${e.message}")
+            }
+    }
+
 }
