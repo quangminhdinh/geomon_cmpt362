@@ -36,7 +36,20 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 import com.example.myapplication.data.AuthManager
 import com.example.myapplication.data.User
-
+import kotlinx.coroutines.withContext
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
+import android.widget.ImageView
+import android.widget.Button
+import androidx.appcompat.app.AlertDialog
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
+import androidx.core.content.ContextCompat
+import com.google.android.gms.maps.model.BitmapDescriptor
+import kotlin.math.roundToInt
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityMainBinding
@@ -57,6 +70,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private val monsterThreshold = 10 // minimum monsters in area
     private var playerMonsterId: String? = null
     private lateinit var permissionHandler: PermissionHandler
+    private var isServiceBound = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +78,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        binding.playerPanel.setOnClickListener {
+            com.example.myapplication.ui.playerstats.PlayerStatsDialogFragment()
+                .show(supportFragmentManager, "PlayerStatsDialog")
+        }
+
+        binding.btnInventory.setOnClickListener {
+            startActivity(Intent(this, com.example.myapplication.ui.pokedex.PokedexActivity::class.java))
+        }
+
 
         // Initialize database and repository
         val db = AppDatabase.get(this)
@@ -106,6 +130,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     longitude = 0.0
                 )
                 playerMonsterId = playerMonster.id
+                withContext(Dispatchers.Main) { updateMonsterPanel() }
 
                 // Create or update user with player monster ID
                 User.createOrUpdate(
@@ -129,10 +154,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         longitude = 0.0
                     )
                     playerMonsterId = playerMonster.id
+                    withContext(Dispatchers.Main) { updateMonsterPanel() }
                     User.addMonster(userId, playerMonster.id)
                     Log.d("GeoMon", "Created new player monster: ${playerMonster.id}")
                 } else {
                     playerMonsterId = existingMonster.id
+                    withContext(Dispatchers.Main) { updateMonsterPanel() }
                     Log.d("GeoMon", "First monster verified: ${existingMonster.name} (${existingMonster.id})")
                 }
             }
@@ -157,13 +184,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun initTrackingService() {
         Log.d("GeoMon", "initTrackingService called")
         Log.d("GeoMon", "serviceStarted.value = ${trackingViewModel.serviceStarted.value}")
-        if (!(trackingViewModel.serviceStarted.value!!)) {
+        if (trackingViewModel.serviceStarted.value != true) {
             Log.d("GeoMon", "Starting tracking service")
             startService(serviceIntent)
             trackingViewModel.serviceStarted.value = true
         }
         Log.d("GeoMon", "Binding to tracking service")
         bindService(serviceIntent, trackingViewModel, BIND_AUTO_CREATE)
+        isServiceBound = true
 
         Log.d("GeoMon", "Setting up latLng observer")
         trackingViewModel.latLng.observe(this, Observer { it ->
@@ -250,6 +278,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             .title("You")
             .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
 
+
+        /*
         // Handle marker clicks
         googleMap.setOnMarkerClickListener { marker ->
             val monster = marker.tag as? Monster
@@ -274,7 +304,39 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             } else {
                 false
             }
+        } */
+        googleMap.setOnMarkerClickListener { marker ->
+            val monster = marker.tag as? com.example.myapplication.battle.Monster
+            if (monster != null) {
+                val view = layoutInflater.inflate(R.layout.dialog_monster, null)
+                view.findViewById<TextView>(R.id.tvMonsterName).text  = monster.name
+                view.findViewById<TextView>(R.id.tvMonsterLevel).text = "Lv. ${monster.level}"
+
+                // Try to load a sprite if it exists (lowercase file in drawable)
+                val spriteName = monster.name.lowercase().replace(" ", "_")
+                val resId = resources.getIdentifier(spriteName, "drawable", packageName)
+                if (resId != 0) view.findViewById<ImageView>(R.id.imgMonster).setImageResource(resId)
+
+                val dlg = androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setView(view)
+                    .create()
+
+                view.findViewById<Button>(R.id.btnFight).setOnClickListener {
+                    val intent = Intent(this, com.example.myapplication.battle.ui.BattleActivity::class.java).apply {
+                        putExtra(com.example.myapplication.battle.ui.BattleActivity.EXTRA_PLAYER_ID, playerMonsterId)
+                        putExtra(com.example.myapplication.battle.ui.BattleActivity.EXTRA_ENEMY_ID, monster.id)
+                    }
+                    startActivity(intent)
+                    dlg.dismiss()
+                }
+                view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dlg.dismiss() }
+                dlg.show()
+                true
+            } else {
+                false
+            }
         }
+
 
         // Check permissions before starting tracking service
         if (permissionHandler.checkAndRequestPermissions()) {
@@ -380,7 +442,31 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             }
         }
     }
+    private fun dp(sizeDp: Int): Int =
+        (sizeDp * resources.displayMetrics.density).roundToInt()
 
+    private fun monsterIconByName(name: String, sizeDp: Int = 42): BitmapDescriptor {
+        val resName = name.lowercase().replace(" ", "_")
+        val resId = resources.getIdentifier(resName, "drawable", packageName)
+        if (resId == 0) return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+
+        val drawable: Drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+
+        val w = dp(sizeDp)
+        val h = dp(sizeDp)
+
+        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        } else {
+            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            drawable.setBounds(0, 0, w, h)
+            drawable.draw(c)
+            b
+        }
+        return BitmapDescriptorFactory.fromBitmap(bmp)
+    }
     private fun displayMonstersOnMap(monsters: List<Monster>) {
         monsterMarkers.forEach { it.remove() }
         monsterMarkers.clear()
@@ -390,12 +476,32 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 MarkerOptions()
                     .position(LatLng(monster.latitude, monster.longitude))
                     .title("${monster.name} (Lv.${monster.level})")
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                    //.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                    .icon(monsterIconByName(monster.name))
+                    .anchor(0.5f, 1f)
+
             )
             marker?.tag = monster
             marker?.let { monsterMarkers.add(it) }
         }
         Log.d("GeoMon", "Displayed ${monsters.size} monsters on map")
+    }
+
+    private fun updateMonsterPanel() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val id = playerMonsterId ?: return@launch
+            val mon = com.example.myapplication.battle.Monster.fetchById(id) ?: return@launch
+            launch(Dispatchers.Main) {
+                binding.tvMonsterName.text  = mon.name
+                binding.tvMonsterLevel.text = "Lv. ${mon.level}"
+                val resId = resources.getIdentifier(
+                    mon.name.lowercase().replace(" ", "_"),
+                    "drawable",
+                    packageName
+                )
+                if (resId != 0) binding.imgMonster.setImageResource(resId)
+            }
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -416,7 +522,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onDestroy() {
         super.onDestroy()
         trackingViewModel.serviceStarted.value = false
+        /*
         unbindService(trackingViewModel)
         stopService(serviceIntent)
+         */
+        if (isServiceBound) {
+            try { unbindService(trackingViewModel) } catch (_: IllegalArgumentException) {}
+            isServiceBound = false
+        }
+        stopService(serviceIntent)
+
     }
 }
