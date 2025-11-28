@@ -1,4 +1,5 @@
 package com.example.myapplication.battle
+
 import java.io.Serializable
 import android.content.Context
 import android.util.Log
@@ -28,14 +29,14 @@ class Monster(
     val specialDefense: Float,
     val speed: Float,
 
-    // four battle moves
-    var move1: Move? = null,
-    var move2: Move? = null,
-    var move3: Move? = null,
-    var move4: Move? = null,
+    // four battle moves - strings
+    var move1: String? = null,
+    var move2: String? = null,
+    var move3: String? = null,
+    var move4: String? = null,
 
     // learnable moves
-    val learnableMoves: List<Move> = emptyList(),
+    val learnableMoves: List<String> = emptyList(),
 
     var isFainted: Boolean = false,
 
@@ -62,7 +63,6 @@ class Monster(
             val db = AppDatabase.get(context)
             val dao = db.speciesDao()
 
-
             val tempSpecies = dao.getByIdNow(name)
 
             if (tempSpecies == null) {
@@ -78,17 +78,16 @@ class Monster(
 
             val species = tempSpecies
 
+            // Get MoveEntities with names
             val move1Entity = species.move1Id?.let { dao.getMoveByIdNow(it) }
             val move2Entity = species.move2Id?.let { dao.getMoveByIdNow(it) }
             val move3Entity = species.move3Id?.let { dao.getMoveByIdNow(it) }
             val move4Entity = species.move4Id?.let { dao.getMoveByIdNow(it) }
 
-
-            val move1 = move1Entity?.let { e: MoveEntity -> Move.fromEntity(e) }
-            val move2 = move2Entity?.let { e: MoveEntity -> Move.fromEntity(e) }
-            val move3 = move3Entity?.let { e: MoveEntity -> Move.fromEntity(e) }
-            val move4 = move4Entity?.let { e: MoveEntity -> Move.fromEntity(e) }
-
+            val move1Name = move1Entity?.name
+            val move2Name = move2Entity?.name
+            val move3Name = move3Entity?.name
+            val move4Name = move4Entity?.name
 
             val monsterRef = FirebaseManager.monstersRef.push()
             val monsterId = monsterRef.key ?: ""
@@ -108,11 +107,11 @@ class Monster(
                 defense = species.def.toFloat(),
                 specialDefense = species.spd.toFloat(),
                 speed = species.spe.toFloat(),
-                move1 = move1,
-                move2 = move2,
-                move3 = move3,
-                move4 = move4,
-                learnableMoves = listOfNotNull(move1, move2, move3, move4),
+                move1 = move1Name,
+                move2 = move2Name,
+                move3 = move3Name,
+                move4 = move4Name,
+                learnableMoves = listOfNotNull(move1Name, move2Name, move3Name, move4Name),
                 isFainted = false,
                 latitude = latitude,
                 longitude = longitude
@@ -127,16 +126,11 @@ class Monster(
 
         fun fromSnapshot(snapshot: DataSnapshot): Monster? {
             return try {
-                // Parse move names and initialize Move objects
+                //  Now it reads String move names from Firebase
                 val move1Name = snapshot.child("move1").getValue(String::class.java)
                 val move2Name = snapshot.child("move2").getValue(String::class.java)
                 val move3Name = snapshot.child("move3").getValue(String::class.java)
                 val move4Name = snapshot.child("move4").getValue(String::class.java)
-
-                val move1 = move1Name?.let { Move.initializeByName(it) }
-                val move2 = move2Name?.let { Move.initializeByName(it) }
-                val move3 = move3Name?.let { Move.initializeByName(it) }
-                val move4 = move4Name?.let { Move.initializeByName(it) }
 
                 Monster(
                     id = snapshot.key ?: "",
@@ -153,11 +147,11 @@ class Monster(
                     defense = snapshot.child("defense").getValue(Float::class.java) ?: 20f,
                     specialDefense = snapshot.child("specialDefense").getValue(Float::class.java) ?: 20f,
                     speed = snapshot.child("speed").getValue(Float::class.java) ?: 20f,
-                    move1 = move1,
-                    move2 = move2,
-                    move3 = move3,
-                    move4 = move4,
-                    learnableMoves = listOfNotNull(move1, move2, move3, move4),
+                    move1 = move1Name,
+                    move2 = move2Name,
+                    move3 = move3Name,
+                    move4 = move4Name,
+                    learnableMoves = listOfNotNull(move1Name, move2Name, move3Name, move4Name),
                     isFainted = snapshot.child("isFainted").getValue(Boolean::class.java) ?: false,
                     latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
                     longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0,
@@ -188,14 +182,14 @@ class Monster(
                 }
         }
 
-        //prevents errors when a monster back ups improperly
+        // prevents errors when a monster back ups improperly
         private fun createDefault(
             name: String = "DefaultMon",
             id: String = "",
             latitude: Double = 0.0,
             longitude: Double = 0.0
         ): Monster {
-            val tackle = Move.initializeByName("Tackle")
+            val tackleName = "Tackle"
 
             return Monster(
                 id = id,
@@ -212,18 +206,17 @@ class Monster(
                 defense = 20f,
                 specialDefense = 20f,
                 speed = 20f,
-                move1 = tackle,
+                move1 = tackleName,
                 move2 = null,
                 move3 = null,
                 move4 = null,
-                learnableMoves = listOf(tackle),
+                learnableMoves = listOf(tackleName),
                 isFainted = false,
                 latitude = latitude,
                 longitude = longitude
             )
         }
     }
-
     fun takeDamage(damage: Float) {
         currentHp -= damage
         if (currentHp <= 0f) {
@@ -241,6 +234,7 @@ class Monster(
     }
 
     fun isAlive(): Boolean = !isFainted
+    // damage/heal/toMap unchanged except for moves part:
 
     fun toMap(): Map<String, Any?> {
         return mapOf(
@@ -257,10 +251,10 @@ class Monster(
             "defense" to defense,
             "specialDefense" to specialDefense,
             "speed" to speed,
-            "move1" to move1?.name,
-            "move2" to move2?.name,
-            "move3" to move3?.name,
-            "move4" to move4?.name,
+            "move1" to move1,
+            "move2" to move2,
+            "move3" to move3,
+            "move4" to move4,
             "isFainted" to isFainted,
             "latitude" to latitude,
             "longitude" to longitude,

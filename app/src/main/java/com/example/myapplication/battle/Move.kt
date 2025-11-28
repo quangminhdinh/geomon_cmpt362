@@ -1,12 +1,15 @@
 package com.example.myapplication.battle
 
+import android.content.Context
+import android.util.Log
+import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MoveEntity
 import kotlin.random.Random
 
 // Battle Move object
 data class Move(
-    val id: String,
-    val name: String,
+    val id: String?,
+    val name: String?,
     val type1: String?,
     val type2: String? = null,
     val type3: String? = null,
@@ -37,7 +40,35 @@ data class Move(
                 otherEffect = e.otherEffect
             )
 
-        fun initializeByName(name: String): Move {
+
+
+        // Initialize by string name with database
+        suspend fun initializeByName(context: Context, nameOrId: String?): Move {
+            val db = AppDatabase.get(context)
+            val dao = db.speciesDao()
+
+            return try {
+
+
+                val entity: MoveEntity? = dao.getMoveByIdNow(nameOrId)
+
+                if (entity != null) {
+                    Log.d("Move", "Loaded move '$nameOrId' from Room DB")
+                    fromEntity(entity)
+                } else {
+                    Log.w("Move", "Move '$nameOrId' not found in DB, using fallback initializer")
+
+                    initializeByName(nameOrId)
+                }
+            } catch (e: Exception) {
+                Log.e("Move", "Error loading move '$nameOrId' from DB: ${e.message}")
+
+                initializeByName(nameOrId)
+            }
+        }
+
+        // initializing without database
+        fun initializeByName(name: String?): Move {
             return when (name) {
                 "Thunderbolt" -> Move(
                     id = "Thunderbolt",
@@ -81,10 +112,8 @@ data class Move(
         }
     }
 
-
-// Accuracy Helper checker
+    // Accuracy Helper checker
     fun doesHit(): Boolean {
-
         val roll = Random.nextFloat()
         return roll <= accuracy
     }

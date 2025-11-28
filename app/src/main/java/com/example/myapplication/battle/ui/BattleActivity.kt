@@ -19,7 +19,6 @@ import com.example.myapplication.R
 import com.example.myapplication.battle.damageCalc
 import com.example.myapplication.data.AuthManager
 import com.example.myapplication.data.User
-import com.example.myapplication.data.FirebaseManager
 
 class BattleActivity : ComponentActivity() {
 
@@ -119,10 +118,8 @@ class BattleActivity : ComponentActivity() {
     // ===== SPRITE LOADING =====
     private fun loadMonsterSprite(monster: Monster, imageView: ImageView) {
         // Convert monster name to lowercase for drawable lookup
-        // e.g., "Watercoon" -> "watercoon"
         val spriteName = monster.name.lowercase().replace(" ", "_")
 
-        // Get drawable resource ID
         val resourceId = resources.getIdentifier(
             spriteName,
             "drawable",
@@ -130,22 +127,22 @@ class BattleActivity : ComponentActivity() {
         )
 
         if (resourceId != 0) {
-            // Sprite found, load it
             imageView.setImageResource(resourceId)
             Log.d("BattleActivity", "Loaded sprite for ${monster.name}: $spriteName")
         } else {
-            // Sprite not found, use placeholder
             Log.w("BattleActivity", "Sprite not found for ${monster.name}, using placeholder")
-            imageView.setImageResource(R.drawable.ic_launcher_foreground) // Default placeholder
+            imageView.setImageResource(R.drawable.ic_launcher_foreground)
         }
     }
 
-    // ===== UI SETUP =====
+
     private fun setupMoveButtons() {
-        btnMove1.text = player.move1?.name ?: "-"
-        btnMove2.text = player.move2?.name ?: "-"
-        btnMove3.text = player.move3?.name ?: "-"
-        btnMove4.text = player.move4?.name ?: "-"
+
+        btnMove1.text = player.move1 ?: "-"
+        btnMove2.text = player.move2 ?: "-"
+        btnMove3.text = player.move3 ?: "-"
+        btnMove4.text = player.move4 ?: "-"
+
 
         btnMove1.setOnClickListener { onPlayerMoveSelected(player.move1) }
         btnMove2.setOnClickListener { onPlayerMoveSelected(player.move2) }
@@ -163,8 +160,6 @@ class BattleActivity : ComponentActivity() {
             setMoveButtonsEnabled(false)
             btnCapture.isEnabled = false
 
-            // Calculate capture probability based on opponent's HP percentage
-            // Lower HP = higher chance (base 20% + up to 60% bonus for low HP)
             val hpPercent = opponent.currentHp / opponent.maxHp
             val captureChance = 0.2 + (1 - hpPercent) * 0.6
 
@@ -173,14 +168,11 @@ class BattleActivity : ComponentActivity() {
 
             val roll = Random.nextDouble()
             if (roll < captureChance) {
-                // Capture successful
                 appendLog("${opponent.name} was captured!")
 
-                // Add monster to player's collection
                 val userId = AuthManager.userId
                 if (userId != null) {
                     User.addMonster(userId, opponent.id)
-                    // Set owner on monster (marks it as not wild)
                     Monster.setOwner(opponent.id, userId)
                     Log.d("BattleActivity", "Monster ${opponent.id} captured by user $userId")
                 }
@@ -188,11 +180,9 @@ class BattleActivity : ComponentActivity() {
                 delay(1500)
                 finish()
             } else {
-                // Capture failed - opponent gets a free attack
                 appendLog("Capture failed!")
                 delay(800)
 
-                // Opponent attacks
                 val aiMove = aiChoice(opponent)
                 performAttack(attacker = opponent, defender = player, move = aiMove, isPlayer = false)
                 updateHpUi()
@@ -225,13 +215,16 @@ class BattleActivity : ComponentActivity() {
         tvAnnouncement.text = message
     }
 
-    // ===== BATTLE LOGIC =====
-    private fun onPlayerMoveSelected(chosenMove: Move?) {
-        if (chosenMove == null) return
+
+    private fun onPlayerMoveSelected(moveName: String?) {
+        if (moveName == null) return
         if (player.isFainted || opponent.isFainted) return
 
         lifecycleScope.launch {
             setMoveButtonsEnabled(false)
+
+            // Actually uses the proper move
+            val chosenMove = Move.initializeByName(this@BattleActivity, moveName)
 
             if (player.speed >= opponent.speed) {
                 performAttack(attacker = player, defender = opponent, move = chosenMove, isPlayer = true)
@@ -275,13 +268,15 @@ class BattleActivity : ComponentActivity() {
         delay(400)
     }
 
-    private fun aiChoice(monster: Monster): Move {
-        val moves = listOfNotNull(monster.move1, monster.move2, monster.move3, monster.move4)
-        if (moves.isEmpty()) {
-            return Move.initializeByName("tackle")
+    // AI now works on STRING move names, then loads Move via DB
+    private suspend fun aiChoice(monster: Monster): Move {
+        val moveNames = listOfNotNull(monster.move1, monster.move2, monster.move3, monster.move4)
+        if (moveNames.isEmpty()) {
+
+            return Move.initializeByName(this@BattleActivity, "Tackle")
         }
-        val index = Random.nextInt(moves.size)
-        return moves[index]
+        val chosenName = moveNames.random()
+        return Move.initializeByName(this@BattleActivity, chosenName)
     }
 
     private fun checkBattleEnd() {
@@ -316,10 +311,10 @@ class BattleActivity : ComponentActivity() {
         Log.d("BattleStats", "[$tag] Defense: ${mon.defense}")
         Log.d("BattleStats", "[$tag] Speed: ${mon.speed}")
 
-        Log.d("BattleStats", "[$tag] Moves:")
-        mon.move1?.let { Log.d("BattleStats", "   Move1: ${it.name} (Power ${it.baseDamage})") }
-        mon.move2?.let { Log.d("BattleStats", "   Move2: ${it.name} (Power ${it.baseDamage})") }
-        mon.move3?.let { Log.d("BattleStats", "   Move3: ${it.name} (Power ${it.baseDamage})") }
-        mon.move4?.let { Log.d("BattleStats", "   Move4: ${it.name} (Power ${it.baseDamage})") }
+        Log.d("BattleStats", "[$tag] Moves (names only):")
+        mon.move1?.let { Log.d("BattleStats", "   Move1: $it") }
+        mon.move2?.let { Log.d("BattleStats", "   Move2: $it") }
+        mon.move3?.let { Log.d("BattleStats", "   Move3: $it") }
+        mon.move4?.let { Log.d("BattleStats", "   Move4: $it") }
     }
 }

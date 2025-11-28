@@ -30,6 +30,6 @@ interface SpeciesDao {
     suspend fun getByIdNow(id: String): SpeciesEntity?
 
     @Query("SELECT * FROM moves WHERE id = :id LIMIT 1")
-    suspend fun getMoveByIdNow(id: String): MoveEntity?
+    suspend fun getMoveByIdNow(id: String?): MoveEntity?
 }
 

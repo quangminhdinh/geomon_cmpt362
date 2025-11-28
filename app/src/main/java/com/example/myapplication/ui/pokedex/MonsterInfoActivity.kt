@@ -67,7 +67,7 @@ class MonsterInfoActivity : AppCompatActivity() {
         }
     }
 
-    private fun bindMonster(monster: Monster) {
+    private suspend fun bindMonster(monster: Monster) {
 
         val nameText = findViewById<TextView>(R.id.monsterName)
         val levelInfoText = findViewById<TextView>(R.id.monsterLevelInfo)
@@ -137,10 +137,16 @@ class MonsterInfoActivity : AppCompatActivity() {
         val moveLeft4 = findViewById<TextView>(R.id.moveLeft4Text)
         val moveRight4 = findViewById<TextView>(R.id.moveRight4Text)
 
-        bindMoveRow(monster.move1, moveRow1, moveLeft1, moveRight1)
-        bindMoveRow(monster.move2, moveRow2, moveLeft2, moveRight2)
-        bindMoveRow(monster.move3, moveRow3, moveLeft3, moveRight3)
-        bindMoveRow(monster.move4, moveRow4, moveLeft4, moveRight4)
+
+        val chosenMove1 = Move.initializeByName(this@MonsterInfoActivity, monster.move1)
+        val chosenMove2 = Move.initializeByName(this@MonsterInfoActivity, monster.move2)
+        val chosenMove3 = Move.initializeByName(this@MonsterInfoActivity, monster.move3)
+        val chosenMove4 = Move.initializeByName(this@MonsterInfoActivity, monster.move4)
+
+        bindMoveRow(chosenMove1, moveRow1, moveLeft1, moveRight1)
+        bindMoveRow(chosenMove2, moveRow2, moveLeft2, moveRight2)
+        bindMoveRow(chosenMove3, moveRow3, moveLeft3, moveRight3)
+        bindMoveRow(chosenMove4, moveRow4, moveLeft4, moveRight4)
 
 
         // moveRow1.setOnClickListener { /* open move details above  */ }
