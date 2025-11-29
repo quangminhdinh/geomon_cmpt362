@@ -5,7 +5,20 @@ import com.example.myapplication.data.db.MoveEntity
 import com.example.myapplication.data.db.SpeciesEntity
 import com.google.gson.Gson
 import com.example.myapplication.R
+import com.example.myapplication.data.db.ItemEntity
 //Stats representative for the Json file
+data class ItemRaw(
+    val id: String,
+    val displayName: String,
+    val healing: Int,
+    val sideAffect: Int,
+    val effect: String,
+    val displayDescription: String,
+    val iconRoot: String,
+    val colorDisplay: String
+)
+
+
 data class BaseStats(
     val hp: Int, val atk: Int, val def: Int,
     val spa: Int, val spd: Int, val spe: Int
@@ -48,6 +61,7 @@ data class Move(
     val healing: Float,
     val otherEffect: String? = null
 )
+
 
 // Load Moves from JSON to list
 fun loadMovesRaw(context: Context): List<Move> {
@@ -103,3 +117,25 @@ fun loadSpeciesEntitiesFromJson(context: Context): List<SpeciesEntity> =
             move4Id = b.move4
         )
     }
+// Extraction Methods for Items
+fun loadItemsRaw(context: Context): List<ItemRaw> {
+    val json = context.resources.openRawResource(R.raw.items)
+        .bufferedReader()
+        .use { it.readText() }
+
+    return Gson().fromJson(json, Array<ItemRaw>::class.java).toList()
+}
+fun loadItemEntitiesFromJson(context: Context): List<ItemEntity> {
+    return loadItemsRaw(context).map { i ->
+        ItemEntity(
+            id = i.id,
+            displayName = i.displayName,
+            healing = i.healing,
+            sideAffect = i.sideAffect,
+            effect = i.effect,
+            displayDescription = i.displayDescription,
+            iconRoot = i.iconRoot,
+            colorDisplay = i.colorDisplay
+        )
+    }
+}

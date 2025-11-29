@@ -12,6 +12,12 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
 import kotlin.random.Random
 
+import com.example.myapplication.data.AuthManager
+import com.example.myapplication.data.User
+import com.example.myapplication.spawn.ItemSpawn
+import com.example.myapplication.spawn.ItemSpawner
+import android.util.Log
+
 class MapActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var googleMap: GoogleMap
@@ -81,25 +87,35 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
         )
 
+
         val monsters = generateMonstersAroundPlayer()
         spawnMonstersOnMap(monsters)
+
+
 
         googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(playerLocation, 15f))
 
         googleMap.setOnMarkerClickListener { marker ->
-            val monster = marker.tag as? Monster
-            if (monster != null) {
-                Toast.makeText(
-                    this,
-                    "Monster: ${monster.name}\nLevel: ${monster.level}\nID: ${monster.id}",
-                    Toast.LENGTH_LONG
-                ).show()
-                true
-            } else {
-                false
+            val tag = marker.tag
+
+            when (tag) {
+                is Monster -> {
+                    Toast.makeText(
+                        this,
+                        "Monster: ${tag.name}\nLevel: ${tag.level}\nID: ${tag.id}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    true
+                }
+
+
+
+                else -> false
             }
         }
     }
+
+
 
     data class Monster(
         val id: String,
@@ -159,4 +175,6 @@ class MapActivity : AppCompatActivity(), OnMapReadyCallback {
             marker?.tag = monster
         }
     }
+
+
 }

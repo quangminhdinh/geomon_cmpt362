@@ -15,13 +15,13 @@ object Seeder {
 //            return@withContext
 //        }
         val speciesEntities = loadSpeciesEntitiesFromJson(context)
-
-
-
         val moveEntities = loadMoveEntitiesFromJson(context)
+        val itemEntities = loadItemEntitiesFromJson(context)
 
 
         repo.upsertAll(speciesEntities)
         repo.upsertMoves(moveEntities)
+        repo.upsertItems(itemEntities)
     }
+
 }

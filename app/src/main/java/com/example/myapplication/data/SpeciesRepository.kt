@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import com.example.myapplication.data.db.ItemEntity
 
 class SpeciesRepository(private val dao: SpeciesDao) {
 
@@ -23,4 +24,8 @@ class SpeciesRepository(private val dao: SpeciesDao) {
 
     suspend fun upsertMoves(moves: List<MoveEntity>) = dao.upsertMoves(moves)
     fun moveById(id: String): Flow<MoveEntity?> = dao.moveById(id)
+
+
+    suspend fun upsertItems(items: List<ItemEntity>) = dao.upsertItems(items)
+
 }

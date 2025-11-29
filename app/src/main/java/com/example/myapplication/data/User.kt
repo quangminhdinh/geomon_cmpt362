@@ -12,7 +12,8 @@ data class User(
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val lastActive: Long = System.currentTimeMillis(),
-    val activeMonsterIndex: Int = 0
+    val activeMonsterIndex: Int = 0,
+    val bag: Map<String, Int> = emptyMap()// bag containing items
 ) {
     // Get the first monster ID (used for battles)
     val firstMonsterId: String?
@@ -25,7 +26,8 @@ data class User(
             "latitude" to latitude,
             "longitude" to longitude,
             "lastActive" to lastActive,
-            "activeMonsterIndex" to activeMonsterIndex
+            "activeMonsterIndex" to activeMonsterIndex,
+            "bag" to bag
         )
     }
 
@@ -38,7 +40,15 @@ data class User(
                     child.getValue(String::class.java)?.let { monsterIdsList.add(it) }
                 }
 
-                val indexMonster = snapshot.child("activeMonsterIndex").getValue(Int::class.java) ?: 0
+                val bagMap = mutableMapOf<String, Int>()
+                snapshot.child("bag").children.forEach { child ->
+                    val itemName = child.key ?: return@forEach
+                    val count = child.getValue(Int::class.java) ?: 0
+                    if (count > 0) bagMap[itemName] = count
+                }
+
+                val indexMonster =
+                    snapshot.child("activeMonsterIndex").getValue(Int::class.java) ?: 0
                 Log.d("GeoMon", "activeMonsterIndex from Firebase = $indexMonster")
 
                 User(
@@ -48,7 +58,8 @@ data class User(
                     latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
                     longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0,
                     lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: 0L,
-                    activeMonsterIndex = indexMonster
+                    activeMonsterIndex = indexMonster,
+                    bag = bagMap                         // <-- NEW
                 )
             } catch (e: Exception) {
                 Log.e("User", "Error parsing user from snapshot: ${e.message}")
@@ -157,5 +168,75 @@ data class User(
                     Log.d("User", "Removed monster $monsterId from user $userId")
                 }
         }
+
+        //refreshes from firebase so that the bag displays the correct item numbers
+        fun updateBag(userId: String, bag: Map<String, Int>) {
+            val updates = mapOf(
+                "bag" to bag,
+                "lastActive" to System.currentTimeMillis()
+            )
+
+            FirebaseManager.usersRef.child(userId)
+                .updateChildren(updates)
+                .addOnSuccessListener {
+                    Log.d("User", "Bag updated for user: $userId")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("User", "Failed to update bag: ${e.message}")
+                }
+        }
+
+        // helper method to add items to the bag mapping
+        fun addItem(userId: String, itemName: String, amount: Int) {
+            if (amount <= 0) {
+                return
+            }
+            FirebaseManager.usersRef.child(userId).child("bag").get()
+                .addOnSuccessListener { snapshot ->
+                    val bagMap = mutableMapOf<String, Int>()
+                    snapshot.children.forEach { child ->
+                        val name = child.key ?: return@forEach
+                        val count = child.getValue(Int::class.java) ?: 0
+                        if (count > 0) bagMap[name] = count
+                    }
+                    val current = bagMap[itemName] ?: 0
+                    bagMap[itemName] = current + amount
+                    updateBag(userId, bagMap)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("User", "Error when reading bag for addItem: ${e.message}")
+                }
+        }
+
+        //Remove items from the bag
+        fun removeByItemName(userId: String, itemName: String, amount: Int) {
+            if (amount <= 0){
+                return
+            }
+            FirebaseManager.usersRef.child(userId).child("bag").get()
+                .addOnSuccessListener { snapshot ->
+                    val bagMap = mutableMapOf<String, Int>()
+                    snapshot.children.forEach { child ->
+                        val name = child.key ?: return@forEach
+                        val count = child.getValue(Int::class.java) ?: 0
+                        if (count > 0) bagMap[name] = count
+                    }
+
+                    val current = bagMap[itemName] ?: 0
+                    val newCount = (current - amount).coerceAtLeast(0)
+                    if (newCount <= 0) {
+                        bagMap.remove(itemName)
+                    } else {
+                        bagMap[itemName] = newCount
+                    }
+
+                    updateBag(userId, bagMap)
+                }
+                .addOnFailureListener { e ->
+                    Log.e("User", "Error when reading bag for removeByItemName: ${e.message}")
+                }
+        }
+
+
     }
 }
