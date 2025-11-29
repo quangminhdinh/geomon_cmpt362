@@ -35,10 +35,10 @@
         style="?android:attr/buttonBarButtonStyle" />
 
     <Button
-        android:id="@+id/btnItems"
+        android:id="@+id/btnMon"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Items"
+        android:text="Monster chat"
         android:textAlignment="textStart"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
