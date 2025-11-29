@@ -1,3 +1,8 @@
+import com.android.build.gradle.internal.cxx.configure.gradleLocalProperties
+
+val gemini_api = gradleLocalProperties(rootDir, providers)
+    .getProperty("gemini_api", "")
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -16,6 +21,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        resValue("string", "gemini_api", "\"" + gemini_api + "\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

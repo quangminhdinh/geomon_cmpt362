@@ -18,7 +18,7 @@
 
         <meta-data
             android:name="com.google.ai.client.generativeai.API_KEY"
-            android:value="AIzaSyDLkw9XD7Yd5DvwRB5jrlYpli4puEarZC8"/>
+            android:value="@string/gemini_api"/>
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
