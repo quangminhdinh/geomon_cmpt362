@@ -15,8 +15,12 @@ STAB
 Type 1/8, 1/4, 1/2. 1 2 4 8
 Status .5 burn
 */
-
-fun damageCalc(attacker: Monster, move: Move, defender: Monster): Float {
+data class DamageResult(
+    val damage: Float,
+    val isCrit: Boolean,
+    val typeMultiplier: Float
+)
+fun damageCalc(attacker: Monster, move: Move, defender: Monster): DamageResult  {
 
 
     val level: Float = attacker.level.toFloat()
@@ -102,5 +106,9 @@ fun damageCalc(attacker: Monster, move: Move, defender: Monster): Float {
     Log.d("DamageCalc", "TOTAL Damage = $finalDamage")
     Log.d("DamageCalc", "--------------------------------")
 
-    return (main * tail).toFloat()
+    return DamageResult(
+        damage = finalDamage,
+        isCrit = isCrit,
+        typeMultiplier = typeMultiplier.toFloat()
+    )
 }

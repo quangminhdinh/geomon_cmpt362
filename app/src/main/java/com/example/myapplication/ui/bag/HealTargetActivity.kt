@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
 import com.example.myapplication.battle.Monster
 import com.example.myapplication.data.AuthManager
+import com.example.myapplication.data.FirebaseManager
 import com.example.myapplication.data.User
 import com.example.myapplication.items.Item
 import com.example.myapplication.ui.pokedex.PokedexAdapter
@@ -98,13 +99,24 @@ class HealTargetActivity : AppCompatActivity() {
 
 
             if (monster.currentHp != monster.maxHp) {
-                monster.healDamage(amount.toFloat())
+                val heal = amount.toFloat()
+                monster.healDamage(heal)
+
+
+                if (monster.id.isNotEmpty()) {
+                    val updates = mapOf(
+                        "currentHp" to monster.currentHp,
+                        "isFainted" to monster.isFainted
+                    )
+                    FirebaseManager.monstersRef.child(monster.id).updateChildren(updates)
+                } else {
+                    Log.e("HealTargetActivity", "Monster has empty id")
+                }
             }
 
             User.removeByItemName(userId, item.displayName, 1)
 
             withContext(Dispatchers.Main) {
-
                 finish()
             }
         }
