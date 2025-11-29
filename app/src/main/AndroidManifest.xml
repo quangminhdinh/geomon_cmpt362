@@ -17,6 +17,10 @@
         android:theme="@style/Theme.MyApplication" >
 
         <meta-data
+            android:name="com.google.ai.client.generativeai.API_KEY"
+            android:value="AIzaSyDLkw9XD7Yd5DvwRB5jrlYpli4puEarZC8"/>
+
+        <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCw0pql8Ur6ToenD5P6SzPRsyELyz4QtA4" />
 
@@ -45,12 +49,6 @@
         <!-- PokedexActivity for viewing captured monsters -->
         <activity
             android:name=".ui.pokedex.PokedexActivity"
-            android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light" />
-
-        <!-- Keep MapActivity for legacy support (not launcher) -->
-        <activity
-            android:name=".MapActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
 

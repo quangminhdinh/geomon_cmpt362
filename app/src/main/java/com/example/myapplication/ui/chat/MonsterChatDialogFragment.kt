@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
@@ -25,6 +26,7 @@ class MonsterChatDialogFragment : DialogFragment() {
     private lateinit var monster: Monster
     private lateinit var chatAdapter: ChatAdapter
     private val chatMessages = mutableListOf<ChatMessage>()
+    private val conversationHistory = mutableListOf<String>()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var etMessage: EditText
@@ -32,10 +34,14 @@ class MonsterChatDialogFragment : DialogFragment() {
     private lateinit var tvMonsterName: TextView
     private lateinit var imgMonsterSprite: ImageView
     private lateinit var btnClose: Button
+    private lateinit var progressBar: ProgressBar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NORMAL, android.R.style.Theme_Material_Light_Dialog_MinWidth)
+
+        // Initialize Gemini
+        MonsterAI.initialize(requireContext())
     }
 
     override fun onCreateView(
@@ -56,6 +62,7 @@ class MonsterChatDialogFragment : DialogFragment() {
         tvMonsterName = view.findViewById(R.id.tvMonsterName)
         imgMonsterSprite = view.findViewById(R.id.imgMonsterSprite)
         btnClose = view.findViewById(R.id.btnClose)
+        progressBar = view.findViewById(R.id.progressBar)
 
         // Setup RecyclerView
         chatAdapter = ChatAdapter(chatMessages)
@@ -98,7 +105,7 @@ class MonsterChatDialogFragment : DialogFragment() {
                 monster = fetchedMonster
 
                 withContext(Dispatchers.Main) {
-                    tvMonsterName.text = monster.name
+                    tvMonsterName.text = "${monster.name} (Lv.${monster.level})"
 
                     // Load sprite
                     val spriteName = monster.name.lowercase().replace(" ", "_")
@@ -107,8 +114,8 @@ class MonsterChatDialogFragment : DialogFragment() {
                         imgMonsterSprite.setImageResource(resourceId)
                     }
 
-                    // Add welcome message
-                    addMonsterMessage("Hi! I'm ${monster.name}. Let's chat!")
+                    // Generate welcome message using AI
+                    generateWelcomeMessage()
                 }
 
             } catch (e: Exception) {
@@ -121,23 +128,63 @@ class MonsterChatDialogFragment : DialogFragment() {
         }
     }
 
+    private fun generateWelcomeMessage() {
+        lifecycleScope.launch {
+            showLoading(true)
+
+            val welcomeMessage = MonsterAI.getChatResponse(
+                monsterName = monster.name,
+                monsterType = monster.type1,
+                monsterLevel = monster.level,
+                userMessage = "Hi! I'm your trainer.",
+                conversationHistory = emptyList()
+            )
+
+            addMonsterMessage(welcomeMessage)
+            showLoading(false)
+        }
+    }
+
     private fun sendMessage() {
         val userMessage = etMessage.text.toString().trim()
         if (userMessage.isEmpty()) return
 
         // Add user message
         addUserMessage(userMessage)
+        conversationHistory.add("User: $userMessage")
         etMessage.text.clear()
 
-        // Disable send button while processing
-        btnSend.isEnabled = false
+        // Disable input while processing
+        setInputEnabled(false)
+        showLoading(true)
 
-        // TODO: Get AI response here
-        // For now, just echo back
+        // Get AI response
         lifecycleScope.launch {
-            kotlinx.coroutines.delay(1000) // Simulate thinking
-            addMonsterMessage("You said: $userMessage")
-            btnSend.isEnabled = true
+            try {
+                val aiResponse = MonsterAI.getChatResponse(
+                    monsterName = monster.name,
+                    monsterType = monster.type1,
+                    monsterLevel = monster.level,
+                    userMessage = userMessage,
+                    conversationHistory = conversationHistory
+                )
+
+                addMonsterMessage(aiResponse)
+                conversationHistory.add("${monster.name}: $aiResponse")
+
+                // Keep conversation history manageable (last 10 messages)
+                if (conversationHistory.size > 10) {
+                    conversationHistory.removeAt(0)
+                    conversationHistory.removeAt(0)
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Error generating response", e)
+                addMonsterMessage("Sorry, I'm having trouble thinking right now...")
+            } finally {
+                setInputEnabled(true)
+                showLoading(false)
+            }
         }
     }
 
@@ -151,6 +198,15 @@ class MonsterChatDialogFragment : DialogFragment() {
         chatMessages.add(ChatMessage(message, isUser = false))
         chatAdapter.notifyItemInserted(chatMessages.size - 1)
         recyclerView.scrollToPosition(chatMessages.size - 1)
+    }
+
+    private fun setInputEnabled(enabled: Boolean) {
+        btnSend.isEnabled = enabled
+        etMessage.isEnabled = enabled
+    }
+
+    private fun showLoading(show: Boolean) {
+        progressBar.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     override fun onStart() {
