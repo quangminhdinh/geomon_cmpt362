@@ -17,6 +17,10 @@
         android:theme="@style/Theme.MyApplication" >
 
         <meta-data
+            android:name="com.google.ai.client.generativeai.API_KEY"
+            android:value="@string/gemini_api"/>
+
+        <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCw0pql8Ur6ToenD5P6SzPRsyELyz4QtA4" />
 

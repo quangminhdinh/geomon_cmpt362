@@ -44,6 +44,16 @@
         android:paddingEnd="16dp"
         style="?android:attr/buttonBarButtonStyle" />
 
+    <Button
+        android:id="@+id/btnMon"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Monster chat"
+        android:textAlignment="textStart"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        style="?android:attr/buttonBarButtonStyle" />
+
     <View
         android:layout_width="match_parent"
         android:layout_height="1dp"

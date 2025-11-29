@@ -48,6 +48,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
+import com.example.myapplication.ui.chat.MonsterAI
 import com.google.android.gms.maps.model.BitmapDescriptor
 import kotlin.math.roundToInt
 import com.example.myapplication.spawn.ItemSpawner
@@ -76,6 +77,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var isServiceBound = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        MonsterAI.initialize(this)
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 

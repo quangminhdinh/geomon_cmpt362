@@ -2,14 +2,22 @@ package com.example.myapplication.ui.home
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.Toast
+import com.example.myapplication.ui.chat.*
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.lifecycleScope
 import com.example.myapplication.R
+import com.example.myapplication.data.AuthManager
+import com.example.myapplication.data.User
 import com.example.myapplication.ui.pokedex.PokedexActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MenuDialogFragment : DialogFragment() {
 
@@ -26,6 +34,7 @@ class MenuDialogFragment : DialogFragment() {
 
         val btnChangeDisplayName: Button = view.findViewById(R.id.btnChangeDisplayName)
         val btnPokedex: Button = view.findViewById(R.id.btnPokedex)
+        val btnMon: Button = view.findViewById(R.id.btnMon)
         val btnItems: Button = view.findViewById(R.id.btnItems)
         val btnClose: Button = view.findViewById(R.id.btnClose)
 
@@ -37,6 +46,10 @@ class MenuDialogFragment : DialogFragment() {
         btnPokedex.setOnClickListener {
             dismiss()
             startActivity(Intent(requireContext(), PokedexActivity::class.java))
+        }
+
+        btnMon.setOnClickListener {
+            openMonsterChat()
         }
         btnItems.setOnClickListener {
             dismiss()
@@ -51,6 +64,42 @@ class MenuDialogFragment : DialogFragment() {
 
         btnClose.setOnClickListener {
             dismiss()
+        }
+    }
+
+    private fun openMonsterChat() {
+        val userId = AuthManager.userId
+        if (userId == null) {
+            Toast.makeText(context, "Not signed in", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                // Fetch user to get first monster ID
+                val user = User.fetchById(userId)
+                val firstMonsterId = user?.firstMonsterId
+
+                if (firstMonsterId == null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "No active monster found", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                // Open chat dialog on main thread
+                withContext(Dispatchers.Main) {
+                    dismiss()
+                    val chatDialog = MonsterChatDialogFragment.newInstance(firstMonsterId)
+                    chatDialog.show(parentFragmentManager, MonsterChatDialogFragment.TAG)
+                }
+
+            } catch (e: Exception) {
+                Log.e("MenuDialog", "Failed to open monster chat", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Failed to load monster", Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 
