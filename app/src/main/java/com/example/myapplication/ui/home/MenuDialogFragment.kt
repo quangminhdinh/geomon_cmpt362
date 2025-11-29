@@ -35,6 +35,7 @@ class MenuDialogFragment : DialogFragment() {
         val btnChangeDisplayName: Button = view.findViewById(R.id.btnChangeDisplayName)
         val btnPokedex: Button = view.findViewById(R.id.btnPokedex)
         val btnMon: Button = view.findViewById(R.id.btnMon)
+        val btnItems: Button = view.findViewById(R.id.btnItems)
         val btnClose: Button = view.findViewById(R.id.btnClose)
 
         btnChangeDisplayName.setOnClickListener {
@@ -50,6 +51,16 @@ class MenuDialogFragment : DialogFragment() {
         btnMon.setOnClickListener {
             openMonsterChat()
         }
+        btnItems.setOnClickListener {
+            dismiss()
+            startActivity(
+                Intent(
+                    requireContext(),
+                    com.example.myapplication.ui.bag.BagActivity::class.java
+                )
+            )
+        }
+
 
         btnClose.setOnClickListener {
             dismiss()

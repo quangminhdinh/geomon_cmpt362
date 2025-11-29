@@ -1,0 +1,22 @@
+[
+  {
+    "id": "ITEM_HEALTH_POTION",
+    "displayName": "Health Potion",
+    "healing": 20,
+    "sideAffect": 0,
+    "effect": "healing",
+    "displayDescription": "Restores 20 HP from your chosen monster.",
+    "iconRoot": "item_health_potion",
+    "colorDisplay": ""
+  },
+  {
+    "id": "ITEM_SUPER_HEALTH_POTION",
+    "displayName": "Super Health Potion",
+    "healing": 100,
+    "sideAffect": 0,
+    "effect": "healing",
+    "displayDescription": "Restores 50 HP from your chosen monster.",
+    "iconRoot": "item_super_health_potion",
+    "colorDisplay": ""
+  }
+]

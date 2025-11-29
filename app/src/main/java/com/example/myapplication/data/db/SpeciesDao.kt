@@ -31,5 +31,17 @@ interface SpeciesDao {
 
     @Query("SELECT * FROM moves WHERE id = :id LIMIT 1")
     suspend fun getMoveByIdNow(id: String?): MoveEntity?
+
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertItems(items: List<ItemEntity>)
+
+    @Query("SELECT * FROM items WHERE displayName = :name LIMIT 1")
+    suspend fun getItemByDisplayNameNow(name: String): ItemEntity?
+
+    @Query("SELECT * FROM items ORDER BY displayName")
+    fun getAllItems(): Flow<List<ItemEntity>>
+
+
 }
 
