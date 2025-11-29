@@ -38,10 +38,16 @@ class MenuDialogFragment : DialogFragment() {
             dismiss()
             startActivity(Intent(requireContext(), PokedexActivity::class.java))
         }
-
         btnItems.setOnClickListener {
-            Toast.makeText(context, "Items - Coming soon", Toast.LENGTH_SHORT).show()
+            dismiss()
+            startActivity(
+                Intent(
+                    requireContext(),
+                    com.example.myapplication.ui.bag.BagActivity::class.java
+                )
+            )
         }
+
 
         btnClose.setOnClickListener {
             dismiss()

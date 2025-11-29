@@ -50,6 +50,8 @@ import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import com.google.android.gms.maps.model.BitmapDescriptor
 import kotlin.math.roundToInt
+import com.example.myapplication.spawn.ItemSpawner
+import com.example.myapplication.spawn.ItemSpawn
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityMainBinding
@@ -65,6 +67,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var availableSpeciesIds: List<String> = emptyList()
 
     private val monsterMarkers = mutableListOf<Marker>()
+    private val itemMarkers = mutableListOf<Marker>()
     private val otherPlayerMarkers = mutableMapOf<String, Marker>()
     private val nearbyRadius = 0.01 // ~1km radius
     private val monsterThreshold = 10 // minimum monsters in area
@@ -254,9 +257,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // Check and spawn monsters around player
         checkAndSpawnMonsters()
 
+        // ✅ NEW: spawn items around player
+        checkAndSpawnItems()
+
         // Show other players on the map
         displayOtherPlayers(latLng)
     }
+
 
     private fun displayOtherPlayers(playerLatLng: LatLng) {
         val currentUserId = AuthManager.userId ?: return
@@ -344,37 +351,104 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                 false
             }
         } */
+        //On click, if player's starting monster is 0 hp, toast a message. If player's starting monster has hp, open a menu.
         googleMap.setOnMarkerClickListener { marker ->
-            val monster = marker.tag as? com.example.myapplication.battle.Monster
-            if (monster != null) {
-                val view = layoutInflater.inflate(R.layout.dialog_monster, null)
-                view.findViewById<TextView>(R.id.tvMonsterName).text  = monster.name
-                view.findViewById<TextView>(R.id.tvMonsterLevel).text = "Lv. ${monster.level}"
+            when (val tag = marker.tag) {
 
-                // Try to load a sprite if it exists (lowercase file in drawable)
-                val spriteName = monster.name.lowercase().replace(" ", "_")
-                val resId = resources.getIdentifier(spriteName, "drawable", packageName)
-                if (resId != 0) view.findViewById<ImageView>(R.id.imgMonster).setImageResource(resId)
+                is Monster -> {
+                    lifecycleScope.launch {
+                        val playerId = playerMonsterId
+                        if (playerId == null) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Your starting monster is not ready yet.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
 
-                val dlg = androidx.appcompat.app.AlertDialog.Builder(this)
-                    .setView(view)
-                    .create()
+                        val playerMon = Monster.fetchById(playerId)
 
-                view.findViewById<Button>(R.id.btnFight).setOnClickListener {
-                    val intent = Intent(this, com.example.myapplication.battle.ui.BattleActivity::class.java).apply {
-                        putExtra(com.example.myapplication.battle.ui.BattleActivity.EXTRA_PLAYER_ID, playerMonsterId)
-                        putExtra(com.example.myapplication.battle.ui.BattleActivity.EXTRA_ENEMY_ID, monster.id)
+                        if (playerMon == null) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Could not load your starting monster.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
+
+                        if (playerMon.currentHp <= 0f || playerMon.isFainted) {
+                            Toast.makeText(
+                                this@MainActivity,
+                                "Your starting monster has fainted. Swap to another monster!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@launch
+                        }
+
+                        val view = layoutInflater.inflate(R.layout.dialog_monster, null)
+                        view.findViewById<TextView>(R.id.tvMonsterName).text  = tag.name
+                        view.findViewById<TextView>(R.id.tvMonsterLevel).text = "Lv. ${tag.level}"
+                        val spriteName = tag.name.lowercase().replace(" ", "_")
+                        val resId = resources.getIdentifier(spriteName, "drawable", packageName)
+                        if (resId != 0) {
+                            view.findViewById<ImageView>(R.id.imgMonster).setImageResource(resId)
+                        }
+                        val dlg = AlertDialog.Builder(this@MainActivity)
+                            .setView(view)
+                            .create()
+
+                        view.findViewById<Button>(R.id.btnFight).setOnClickListener {
+                            val intent = Intent(
+                                this@MainActivity,
+                                BattleActivity::class.java
+                            ).apply {
+                                putExtra(
+                                    BattleActivity.EXTRA_PLAYER_ID,
+                                    playerMonsterId
+                                )
+                                putExtra(
+                                    BattleActivity.EXTRA_ENEMY_ID,
+                                    tag.id
+                                )
+                            }
+                            startActivity(intent)
+                            dlg.dismiss()
+                        }
+
+                        view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dlg.dismiss() }
+
+                        dlg.show()
                     }
-                    startActivity(intent)
-                    dlg.dismiss()
+                    true
                 }
-                view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dlg.dismiss() }
-                dlg.show()
-                true
-            } else {
-                false
+
+                is ItemSpawn -> {
+                    val userId = AuthManager.userId
+                    if (userId != null) {
+                        User.addItem(userId, tag.name, 1)
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Picked up: ${tag.name}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        itemMarkers.remove(marker)
+                        marker.remove()
+                    } else {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Log in to pick up map items",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                    true
+                }
+
+                else -> false
             }
         }
+
 
 
         // Check permissions before starting tracking service
@@ -506,6 +580,70 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         return BitmapDescriptorFactory.fromBitmap(bmp)
     }
+    private fun checkAndSpawnItems() {
+        val playerLatLng = trackingViewModel.latLng.value ?: return
+
+        // Generate items locally around the player using ItemSpawner
+        val items = ItemSpawner.generateItemsAround(playerLatLng)
+        Log.d("GeoMon", "Generated ${items.size} items around player")
+        displayItemsOnMap(items)
+    }
+
+    private fun displayItemsOnMap(items: List<ItemSpawn>) {
+        // Remove old item markers
+        itemMarkers.forEach { it.remove() }
+        itemMarkers.clear()
+
+        items.forEach { item ->
+            Log.d(
+                "GeoMon",
+                "Placing item: ${item.name} at ${item.latitude}, ${item.longitude}"
+            )
+
+            val marker = googleMap.addMarker(
+                MarkerOptions()
+                    .position(LatLng(item.latitude, item.longitude))
+                    .title(item.name)
+                    .icon(itemIconByName(item.name))
+                    .anchor(0.5f, 1f)
+            )
+            marker?.let {
+                it.tag = item
+                itemMarkers.add(it)
+            }
+        }
+
+        Log.d("GeoMon", "Displayed ${items.size} items on map")
+    }
+
+    private fun itemIconByName(name: String, sizeDp: Int = 42): BitmapDescriptor {
+        val resName = name.lowercase().replace(" ", "_")
+        val resId = resources.getIdentifier(resName, "drawable", packageName)
+
+        if (resId == 0) {
+            // fallback: green marker for items
+            return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+        }
+
+        val drawable: Drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
+
+        val w = dp(sizeDp)
+        val h = dp(sizeDp)
+
+        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        } else {
+            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            drawable.setBounds(0, 0, w, h)
+            drawable.draw(c)
+            b
+        }
+
+        return BitmapDescriptorFactory.fromBitmap(bmp)
+    }
+
     private fun displayMonstersOnMap(monsters: List<Monster>) {
         monsterMarkers.forEach { it.remove() }
         monsterMarkers.clear()

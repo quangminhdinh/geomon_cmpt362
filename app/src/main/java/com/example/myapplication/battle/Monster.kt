@@ -223,15 +223,41 @@ class Monster(
             currentHp = 0f
             isFainted = true
         }
+        syncHpToFirebase()
     }
-    // heal health, called by healing moves
+    //update fire base so the pokemon have lower hp
+    private fun syncHpToFirebase() {
+
+        if (id.isEmpty()) {
+            return
+        }
+
+        val updates = mapOf(
+            "currentHp" to currentHp,
+            "isFainted" to isFainted
+        )
+
+        FirebaseManager.monstersRef
+            .child(id)
+            .updateChildren(updates)
+            .addOnFailureListener { e ->
+                Log.e("Monster", "Failed to update HP in Firebase: ${e.message}")
+            }
+    }
+
+    // heal health, called by healing moves and bag items
     fun healDamage(amount: Float) {
-        if (isFainted) return
+        if (isFainted) {
+            return
+        }
         currentHp += amount
         if (currentHp > maxHp) {
             currentHp = maxHp
         }
+
+        syncHpToFirebase()
     }
+
 
     fun isAlive(): Boolean = !isFainted
     // damage/heal/toMap unchanged except for moves part:

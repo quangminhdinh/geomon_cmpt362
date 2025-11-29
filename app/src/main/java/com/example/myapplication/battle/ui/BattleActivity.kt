@@ -223,7 +223,7 @@ class BattleActivity : ComponentActivity() {
         lifecycleScope.launch {
             setMoveButtonsEnabled(false)
 
-            // Actually uses the proper move
+
             val chosenMove = Move.initializeByName(this@BattleActivity, moveName)
 
             if (player.speed >= opponent.speed) {
@@ -288,8 +288,10 @@ class BattleActivity : ComponentActivity() {
             setMoveButtonsEnabled(false)
         } else if (opponent.isFainted) {
             appendLog("${opponent.name} fainted! Victory!")
+            giveVictoryRewards()
             setMoveButtonsEnabled(false)
         }
+
     }
 
     companion object {
@@ -317,4 +319,18 @@ class BattleActivity : ComponentActivity() {
         mon.move3?.let { Log.d("BattleStats", "   Move3: $it") }
         mon.move4?.let { Log.d("BattleStats", "   Move4: $it") }
     }
+    // awarding the player when winning a potion
+    private fun giveVictoryRewards() {
+        val userId = AuthManager.userId ?: return
+
+
+        User.addItem(userId, "Health Potion", 1)
+
+
+        val roll = Random.nextDouble()
+        if (roll < 0.2) {
+            User.addItem(userId, "Super Health Potion", 1)
+        }
+    }
+
 }
