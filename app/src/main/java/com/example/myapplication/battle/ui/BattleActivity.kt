@@ -369,6 +369,10 @@ class BattleActivity : ComponentActivity() {
         if (player.isFainted && opponent.isFainted) {
             appendLog("Both monsters fainted! It's a tie.")
             setMoveButtonsEnabled(false)
+            // Delete opponent if wild
+            if (opponent.isWild) {
+                FirebaseManager.monstersRef.child(opponent.id).removeValue()
+            }
         } else if (player.isFainted) {
             appendLog("${player.name} fainted! Defeat!")
             setMoveButtonsEnabled(false)
@@ -376,6 +380,11 @@ class BattleActivity : ComponentActivity() {
             appendLog("${opponent.name} fainted! Victory!")
             giveVictoryRewards()
             setMoveButtonsEnabled(false)
+            // Delete opponent if wild
+            if (opponent.isWild) {
+                FirebaseManager.monstersRef.child(opponent.id).removeValue()
+                Log.d("BattleActivity", "Defeated wild monster ${opponent.id} deleted from Firebase")
+            }
         }
 
     }

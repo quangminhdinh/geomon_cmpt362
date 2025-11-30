@@ -53,6 +53,8 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import kotlin.math.roundToInt
 import com.example.myapplication.spawn.ItemSpawner
 import com.example.myapplication.spawn.ItemSpawn
+import android.os.Handler
+import android.os.Looper
 class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityMainBinding
@@ -75,6 +77,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private var playerMonsterId: String? = null
     private lateinit var permissionHandler: PermissionHandler
     private var isServiceBound = false
+
+    private val heartbeatHandler = Handler(Looper.getMainLooper())
+    private val heartbeatInterval = 30000L // 30 seconds
+    private val heartbeatRunnable = object : Runnable {
+        override fun run() {
+            AuthManager.userId?.let { userId ->
+                User.updateLastActive(userId)
+                Log.d("GeoMon", "Updated lastActive timestamp")
+            }
+            heartbeatHandler.postDelayed(this, heartbeatInterval)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -213,8 +227,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // When coming back from MonsterInfoActivity, refresh active monster
         refreshPlayerMonsterFromUser()
 
+        // Start heartbeat to keep user active
+        heartbeatHandler.post(heartbeatRunnable)
+
+        // Refresh monsters on map (in case any were defeated/captured in battle)
+        if (::googleMap.isInitialized) {
+            val currentLatLng = trackingViewModel.latLng.value
+            if (currentLatLng != null) {
+                fetchAndDisplayNearbyMonsters(currentLatLng)
+                displayOtherPlayers(currentLatLng)
+            }
+        }
+
        // checkAndSpawnMonsters()
 
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Stop heartbeat when activity is paused
+        heartbeatHandler.removeCallbacks(heartbeatRunnable)
     }
     
     //refresh for choosing the starting monster

@@ -117,6 +117,12 @@ data class User(
             )
         }
 
+        fun updateLastActive(userId: String) {
+            FirebaseManager.usersRef.child(userId).updateChildren(
+                mapOf("lastActive" to System.currentTimeMillis())
+            )
+        }
+
         fun addMonster(userId: String, monsterId: String) {
             FirebaseManager.usersRef.child(userId).child("monsterIds").get()
                 .addOnSuccessListener { snapshot ->
