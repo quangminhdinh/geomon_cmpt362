@@ -345,13 +345,14 @@ class Monster(
     }
     // heal health, called by healing moves and bag items
     fun healDamage(amount: Float) {
-        if (isFainted) {
-            return
-        }
+//        if (isFainted) {
+//            return
+//        }
         currentHp += amount
         if (currentHp > maxHp) {
             currentHp = maxHp
         }
+        isFainted = false
 
 
         syncHpToFirebase()

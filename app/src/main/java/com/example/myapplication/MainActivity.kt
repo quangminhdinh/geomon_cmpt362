@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         }
 
         binding.btnInventory.setOnClickListener {
-            startActivity(Intent(this, com.example.myapplication.ui.pokedex.PokedexActivity::class.java))
+            startActivity(Intent(this, com.example.myapplication.ui.bag.BagActivity::class.java))
         }
 
 
