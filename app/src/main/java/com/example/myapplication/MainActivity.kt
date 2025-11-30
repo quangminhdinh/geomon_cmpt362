@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private val otherPlayerLocations = mutableMapOf<String, LatLng>() // Track last known positions
     private val otherPlayerDirections = mutableMapOf<String, String>() // Track each player's direction
     private val otherPlayerAvatars = mutableMapOf<String, Bitmap>() // Cache other players' avatars
+    private var otherPlayersListener: ValueEventListener? = null
     private val nearbyRadius = 0.01 // ~1km radius
     private val monsterThreshold = 10 // minimum monsters in area
     private var playerMonsterId: String? = null
@@ -340,9 +341,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private fun displayOtherPlayers(playerLatLng: LatLng) {
         val currentUserId = AuthManager.userId ?: return
 
-        FirebaseManager.usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+        // Remove old listener if exists
+        otherPlayersListener?.let {
+            FirebaseManager.usersRef.removeEventListener(it)
+        }
+
+        // Create continuous listener for real-time updates
+        otherPlayersListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val activeThreshold = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes
+                val currentPlayerIds = mutableSetOf<String>()
 
                 for (child in snapshot.children) {
                     val userId = child.key ?: continue
@@ -354,21 +362,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
                     // Skip inactive users
                     if (user.lastActive < activeThreshold) {
-                        otherPlayerMarkers[userId]?.remove()
-                        otherPlayerMarkers.remove(userId)
-                        otherPlayerLocations.remove(userId)
-                        otherPlayerDirections.remove(userId)
                         continue
                     }
 
                     // Check if within visible radius
                     if (!isWithinRadius(playerLatLng, user.latitude, user.longitude)) {
-                        otherPlayerMarkers[userId]?.remove()
-                        otherPlayerMarkers.remove(userId)
-                        otherPlayerLocations.remove(userId)
-                        otherPlayerDirections.remove(userId)
                         continue
                     }
+
+                    currentPlayerIds.add(userId)
 
                     val newLocation = LatLng(user.latitude, user.longitude)
                     val previousLocation = otherPlayerLocations[userId]
@@ -401,12 +403,23 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                         updateOtherPlayerMarker(userId, newLocation, direction, user.displayName, otherPlayerAvatars[userId])
                     }
                 }
+
+                // Remove markers for players no longer visible
+                val playersToRemove = otherPlayerMarkers.keys.filter { !currentPlayerIds.contains(it) }
+                playersToRemove.forEach { userId ->
+                    otherPlayerMarkers[userId]?.remove()
+                    otherPlayerMarkers.remove(userId)
+                    otherPlayerLocations.remove(userId)
+                    otherPlayerDirections.remove(userId)
+                }
             }
 
             override fun onCancelled(error: DatabaseError) {
                 Log.e("GeoMon", "Failed to fetch other players: ${error.message}")
             }
-        })
+        }
+
+        FirebaseManager.usersRef.addValueEventListener(otherPlayersListener!!)
     }
 
     private fun updateOtherPlayerMarker(userId: String, location: LatLng, direction: String, displayName: String, avatarBitmap: Bitmap?) {
@@ -1012,6 +1025,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     override fun onDestroy() {
         super.onDestroy()
         trackingViewModel.serviceStarted.value = false
+
+        // Remove Firebase listener
+        otherPlayersListener?.let {
+            FirebaseManager.usersRef.removeEventListener(it)
+        }
+
         /*
         unbindService(trackingViewModel)
         stopService(serviceIntent)
