@@ -2,9 +2,11 @@ package com.example.myapplication.ui.chat
 
 import android.os.Bundle
 import android.util.Log
+import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -20,6 +22,7 @@ import com.example.myapplication.battle.Monster
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
 
 class MonsterChatDialogFragment : DialogFragment() {
 
@@ -82,6 +85,13 @@ class MonsterChatDialogFragment : DialogFragment() {
         // Setup button listeners
         btnSend.setOnClickListener {
             sendMessage()
+        }
+
+        etMessage.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_ENTER) {
+                sendMessage()
+                true
+            } else false
         }
 
         btnClose.setOnClickListener {

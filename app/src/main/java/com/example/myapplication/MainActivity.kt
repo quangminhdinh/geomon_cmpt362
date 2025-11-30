@@ -57,6 +57,8 @@ import android.os.Handler
 import android.os.Looper
 import com.bumptech.glide.Glide
 import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
+import com.example.myapplication.ui.pokedex.MonsterInfoActivity
+
 class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
 
     private lateinit var binding: ActivityMainBinding
@@ -941,7 +943,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private fun updateMonsterPanel() {
         lifecycleScope.launch(Dispatchers.IO) {
             val id = playerMonsterId ?: return@launch
-            val mon = com.example.myapplication.battle.Monster.fetchById(id) ?: return@launch
+            val mon = Monster.fetchById(id) ?: return@launch
             launch(Dispatchers.Main) {
                 binding.tvMonsterName.text  = mon.name
                 binding.tvMonsterLevel.text = "Lv. ${mon.level}"
@@ -950,6 +952,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     "drawable",
                     packageName
                 )
+                binding.monsterPanel.setOnClickListener {
+                    startActivity(Intent(this@MainActivity, com.example.myapplication.ui.pokedex.PokedexActivity::class.java))
+                }
                 if (resId != 0) binding.imgMonster.setImageResource(resId)
             }
         }
