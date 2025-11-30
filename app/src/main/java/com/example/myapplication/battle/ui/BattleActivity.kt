@@ -366,6 +366,14 @@ class BattleActivity : ComponentActivity() {
     }
 
     private fun checkBattleEnd() {
+        if (player.isFainted || opponent.isFainted) {
+            btnRun.isEnabled = false
+            btnCapture.isEnabled = false
+            lifecycleScope.launch {
+                delay(1000)
+                finish()
+            }
+        }
         if (player.isFainted && opponent.isFainted) {
             appendLog("Both monsters fainted! It's a tie.")
             setMoveButtonsEnabled(false)

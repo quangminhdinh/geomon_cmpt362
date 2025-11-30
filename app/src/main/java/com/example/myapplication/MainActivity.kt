@@ -272,6 +272,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         "GeoMon",
                         "Refreshed active player monster: id=$playerMonsterId index=$activeIndex"
                     )
+                    // Update the monster panel UI
+                    updateMonsterPanel()
                 } else {
                     Log.e("GeoMon", "No monsterIds found for user when refreshing player monster")
                 }
