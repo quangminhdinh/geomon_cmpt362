@@ -967,6 +967,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             val user = User.fetchById(userId) ?: return@launch
 
             launch(Dispatchers.Main) {
+                binding.playerNameOnPanel.text = user.displayName
                 if (user.avatarUrl.isNotBlank()) {
                     // Load avatar for bottom panel
                     Glide.with(this@MainActivity)
