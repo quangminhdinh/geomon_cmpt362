@@ -212,6 +212,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onResume()
         // When coming back from MonsterInfoActivity, refresh active monster
         refreshPlayerMonsterFromUser()
+
+       // checkAndSpawnMonsters()
+
     }
     
     //refresh for choosing the starting monster
@@ -404,6 +407,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             .create()
 
                         view.findViewById<Button>(R.id.btnFight).setOnClickListener {
+
                             val intent = Intent(
                                 this@MainActivity,
                                 BattleActivity::class.java
@@ -419,6 +423,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                             }
                             startActivity(intent)
                             dlg.dismiss()
+
                         }
 
                         view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dlg.dismiss() }
@@ -594,7 +599,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun displayItemsOnMap(items: List<ItemSpawn>) {
-        // Remove old item markers
+
         itemMarkers.forEach { it.remove() }
         itemMarkers.clear()
 
@@ -667,6 +672,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         Log.d("GeoMon", "Displayed ${monsters.size} monsters on map")
     }
+
+
 
     private fun updateMonsterPanel() {
         lifecycleScope.launch(Dispatchers.IO) {

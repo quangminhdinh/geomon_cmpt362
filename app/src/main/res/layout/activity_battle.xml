@@ -142,19 +142,75 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal">
 
-            <Button
+            <LinearLayout
                 android:id="@+id/btnMove1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Mud Slap" />
+                android:orientation="vertical"
+                android:clickable="true"
+                android:padding="7dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:background="#7F56F0"
+                android:layout_marginEnd="3dp">
 
-            <Button
+                <TextView
+                    android:id="@+id/btnMove1Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Trailblaze"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:textStyle="bold" />
+
+
+                <TextView
+                    android:id="@+id/moveLeftTextType1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Grass"
+                    android:gravity="center"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+
+
+            <LinearLayout
                 android:id="@+id/btnMove2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Recover" />
+                android:orientation="vertical"
+                android:clickable="true"
+                android:padding="7dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:background="#7F56F0"
+                >
+
+                <TextView
+                    android:id="@+id/btnMove2Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Move 2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/moveLeftTextType2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Type"
+                    android:textColor="#FFFFFF"
+                    android:gravity="center"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
         <LinearLayout
@@ -163,19 +219,72 @@
             android:orientation="horizontal"
             android:layout_marginTop="4dp">
 
-            <Button
+            <LinearLayout
                 android:id="@+id/btnMove3"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Shadow Punch" />
+                android:orientation="vertical"
+                android:clickable="true"
+                android:padding="7dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:background="#7F56F0"
+                android:layout_marginEnd="3dp">
 
-            <Button
+                <TextView
+                    android:id="@+id/btnMove3Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Move 3"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/moveLeftTextType3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Type"
+                    android:textColor="#FFFFFF"
+                    android:gravity="center"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+
+            <LinearLayout
                 android:id="@+id/btnMove4"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Earthquake" />
+                android:orientation="vertical"
+                android:clickable="true"
+                android:padding="7dp"
+                android:foreground="?attr/selectableItemBackground"
+                android:background="#7F56F0">
+
+                <TextView
+                    android:id="@+id/btnMove4Text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Move 4"
+                    android:textColor="#FFFFFF"
+                    android:textSize="16sp"
+                    android:gravity="center"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/moveLeftTextType4"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Type"
+                    android:textColor="#FFFFFF"
+                    android:gravity="center"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
         </LinearLayout>
     </LinearLayout>
 

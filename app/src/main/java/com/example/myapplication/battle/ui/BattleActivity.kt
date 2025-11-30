@@ -19,6 +19,9 @@ import com.example.myapplication.R
 import com.example.myapplication.battle.damageCalc
 import com.example.myapplication.data.AuthManager
 import com.example.myapplication.data.User
+import com.example.myapplication.data.FirebaseManager
+import android.widget.LinearLayout
+
 
 class BattleActivity : ComponentActivity() {
 
@@ -39,11 +42,21 @@ class BattleActivity : ComponentActivity() {
 
     private lateinit var logList: RecyclerView
 
-    private lateinit var btnMove1: Button
-    private lateinit var btnMove2: Button
-    private lateinit var btnMove3: Button
-    private lateinit var btnMove4: Button
+    private lateinit var btnMove1: LinearLayout
+    private lateinit var btnMove2: LinearLayout
+    private lateinit var btnMove3: LinearLayout
+    private lateinit var btnMove4: LinearLayout
 
+    private lateinit var btnMove1Text: TextView
+
+
+    private lateinit var btnMove2Text: TextView
+    private lateinit var btnMove3Text: TextView
+    private lateinit var btnMove4Text: TextView
+    private lateinit var btnMove1Type: TextView
+    private lateinit var btnMove2Type: TextView
+    private lateinit var btnMove3Type: TextView
+    private lateinit var btnMove4Type: TextView
     private lateinit var btnRun: Button
     private lateinit var btnCapture: Button
 
@@ -66,9 +79,24 @@ class BattleActivity : ComponentActivity() {
         logList         = findViewById(R.id.logList)
 
         btnMove1 = findViewById(R.id.btnMove1)
+
         btnMove2 = findViewById(R.id.btnMove2)
         btnMove3 = findViewById(R.id.btnMove3)
         btnMove4 = findViewById(R.id.btnMove4)
+
+        btnMove1Text = findViewById(R.id.btnMove1Text)
+        btnMove2Text = findViewById(R.id.btnMove2Text)
+        btnMove3Text = findViewById(R.id.btnMove3Text)
+        btnMove4Text = findViewById(R.id.btnMove4Text)
+
+        btnMove1Type = findViewById(R.id.moveLeftTextType1)
+        btnMove2Type = findViewById(R.id.moveLeftTextType2)
+        btnMove3Type = findViewById(R.id.moveLeftTextType3)
+        btnMove4Type = findViewById(R.id.moveLeftTextType4)
+
+
+
+
         btnRun     = findViewById(R.id.btnRun)
         btnCapture = findViewById(R.id.btnCapture)
 
@@ -138,10 +166,39 @@ class BattleActivity : ComponentActivity() {
 
     private fun setupMoveButtons() {
 
-        btnMove1.text = player.move1 ?: "-"
-        btnMove2.text = player.move2 ?: "-"
-        btnMove3.text = player.move3 ?: "-"
-        btnMove4.text = player.move4 ?: "-"
+        btnMove1Text.text = player.move1 ?: "-"
+        btnMove2Text.text = player.move2 ?: "-"
+        btnMove3Text.text = player.move3 ?: "-"
+        btnMove4Text.text = player.move4 ?: "-"
+
+
+        btnMove1Type.text = ""
+        btnMove2Type.text = ""
+        btnMove3Type.text = ""
+        btnMove4Type.text = ""
+
+
+        lifecycleScope.launch {
+            player.move1?.let { name ->
+                val move = Move.initializeByName(this@BattleActivity, name)
+                btnMove1Type.text = move.type1 ?: "-"
+            }
+
+            player.move2?.let { name ->
+                val move = Move.initializeByName(this@BattleActivity, name)
+                btnMove2Type.text = move.type1 ?: "-"
+            }
+
+            player.move3?.let { name ->
+                val move = Move.initializeByName(this@BattleActivity, name)
+                btnMove3Type.text = move.type1 ?: "-"
+            }
+
+            player.move4?.let { name ->
+                val move = Move.initializeByName(this@BattleActivity, name)
+                btnMove4Type.text = move.type1 ?: "-"
+            }
+        }
 
 
         btnMove1.setOnClickListener { onPlayerMoveSelected(player.move1) }
@@ -149,7 +206,7 @@ class BattleActivity : ComponentActivity() {
         btnMove3.setOnClickListener { onPlayerMoveSelected(player.move3) }
         btnMove4.setOnClickListener { onPlayerMoveSelected(player.move4) }
 
-        btnRun.setOnClickListener { finish() }
+        btnRun.setOnClickListener { runFromBattle() }
         btnCapture.setOnClickListener { attemptCapture() }
     }
 
@@ -251,22 +308,51 @@ class BattleActivity : ComponentActivity() {
             }
         }
     }
-
+    //utilze damageCalc to calculate damage and add to string to for visual clarity
     private suspend fun performAttack(attacker: Monster, defender: Monster, move: Move, isPlayer: Boolean) {
         if (!move.doesHit()) {
             appendLog("${attacker.name}'s ${move.name} missed!")
             return
         }
 
-        val damage = damageCalc(attacker, move, defender)
-        defender.takeDamage(damage)
 
-        val who = if (isPlayer) "Player" else "Enemy"
-        appendLog("$who ${attacker.name} used ${move.name}! It dealt ${damage.toInt()} damage.")
+        val result = damageCalc(attacker, move, defender)
+
+        defender.takeDamage(result.damage)
+
+        val monsterUser: String
+        if (isPlayer) {
+            monsterUser = "Player"
+        } else {
+            monsterUser = "Enemy"
+        }
+
+
+        val announcerBuild = StringBuilder()
+        announcerBuild.append("$monsterUser ${attacker.name} used ${move.name}! It dealt ${result.damage.toInt()} damage.")
+
+        when {
+            result.typeMultiplier == 0f -> {
+                announcerBuild.append(" It had no effect...")
+            }
+            result.typeMultiplier > 1.01f -> {
+                announcerBuild.append(" It's super effective!")
+            }
+            result.typeMultiplier < 0.99f -> {
+                announcerBuild.append(" It's not very effective...")
+            }
+        }
+
+        if (result.isCrit) {
+            announcerBuild.append(" A critical hit!")
+        }
+
+        appendLog(announcerBuild.toString())
 
         updateHpUi()
         delay(400)
     }
+
 
     // AI now works on STRING move names, then loads Move via DB
     private suspend fun aiChoice(monster: Monster): Move {
@@ -331,6 +417,16 @@ class BattleActivity : ComponentActivity() {
         if (roll < 0.2) {
             User.addItem(userId, "Super Health Potion", 1)
         }
+    }
+    //despawns monsters after running from them
+    private fun runFromBattle() {
+
+        if (!::opponent.isInitialized) {
+            finish()
+            return
+        }
+        FirebaseManager.monstersRef.child(opponent.id).removeValue()
+        finish()
     }
 
 }
