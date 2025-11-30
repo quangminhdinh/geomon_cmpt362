@@ -65,6 +65,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private lateinit var playerMarkerOptions: MarkerOptions
     private var playerMarker: Marker? = null
     private val zoomValue = 15f
+    private var previousPlayerLatLng: LatLng? = null
+    private var currentPlayerDirection: String = "down" // down, up, left, right
 
     private lateinit var trackingViewModel: TrackingViewModel
     private lateinit var serviceIntent: Intent
@@ -300,9 +302,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private fun updateMap(latLng: LatLng) {
         val cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, zoomValue)
         googleMap.animateCamera(cameraUpdate)
+
+        // Calculate direction based on movement
+        if (previousPlayerLatLng != null) {
+            calculateDirection(latLng)
+        }
+
+        // Remove old marker and add new one with updated direction icon
         playerMarker?.remove()
         playerMarkerOptions.position(latLng)
+        playerMarkerOptions.icon(getDirectionIcon())
         playerMarker = googleMap.addMarker(playerMarkerOptions)
+
+        // Update previous location for next direction calculation
+        previousPlayerLatLng = latLng
 
         // Update user location in Firebase for multiplayer
         AuthManager.userId?.let { userId ->
@@ -377,7 +390,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
         playerMarkerOptions = MarkerOptions()
             .title("You")
-            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            .icon(getDirectionIcon())
 
 
         /*
@@ -614,6 +627,49 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     }
     private fun dp(sizeDp: Int): Int =
         (sizeDp * resources.displayMetrics.density).roundToInt()
+
+    private fun getDirectionIcon(sizeDp: Int = 42): BitmapDescriptor {
+        val resName = currentPlayerDirection // "down", "up", "left", or "right"
+        val resId = resources.getIdentifier(resName, "drawable", packageName)
+
+        if (resId == 0) {
+            // Fallback to default marker if direction image not found
+            return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+        }
+
+        val drawable: Drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+
+        val w = dp(sizeDp)
+        val h = dp(sizeDp)
+
+        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        } else {
+            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            drawable.setBounds(0, 0, w, h)
+            drawable.draw(c)
+            b
+        }
+        return BitmapDescriptorFactory.fromBitmap(bmp)
+    }
+
+    private fun calculateDirection(newLatLng: LatLng) {
+        val prev = previousPlayerLatLng ?: return
+
+        val latDiff = newLatLng.latitude - prev.latitude
+        val lngDiff = newLatLng.longitude - prev.longitude
+
+        // Determine primary direction based on larger difference
+        if (Math.abs(latDiff) > Math.abs(lngDiff)) {
+            // More vertical movement
+            currentPlayerDirection = if (latDiff > 0) "up" else "down"
+        } else {
+            // More horizontal movement
+            currentPlayerDirection = if (lngDiff > 0) "right" else "left"
+        }
+    }
 
     private fun monsterIconByName(name: String, sizeDp: Int = 42): BitmapDescriptor {
         val resName = name.lowercase().replace(" ", "_")
