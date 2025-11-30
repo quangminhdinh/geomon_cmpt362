@@ -55,7 +55,9 @@ import com.example.myapplication.spawn.ItemSpawner
 import com.example.myapplication.spawn.ItemSpawn
 import android.os.Handler
 import android.os.Looper
-class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+import com.bumptech.glide.Glide
+import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
 
     private lateinit var binding: ActivityMainBinding
 
@@ -151,7 +153,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     longitude = 0.0
                 )
                 playerMonsterId = playerMonster.id
-                withContext(Dispatchers.Main) { updateMonsterPanel() }
+                withContext(Dispatchers.Main) {
+                    updateMonsterPanel()
+                    refreshPlayerAvatar()
+                }
 
                 // Create or update user with player monster ID
                 User.createOrUpdate(
@@ -176,12 +181,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         longitude = 0.0
                     )
                     playerMonsterId = playerMonster.id
-                    withContext(Dispatchers.Main) { updateMonsterPanel() }
+                    withContext(Dispatchers.Main) {
+                        updateMonsterPanel()
+                        refreshPlayerAvatar()
+                    }
                     User.addMonster(userId, playerMonster.id)
                     Log.d("GeoMon", "Created new player monster: ${playerMonster.id}")
                 } else {
                     playerMonsterId = existingMonster.id
-                    withContext(Dispatchers.Main) { updateMonsterPanel() }
+                    withContext(Dispatchers.Main) {
+                        updateMonsterPanel()
+                        refreshPlayerAvatar()
+                    }
                     Log.d("GeoMon", "First monster verified: ${existingMonster.name} (${existingMonster.id})")
                 }
             }
@@ -226,6 +237,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onResume()
         // When coming back from MonsterInfoActivity, refresh active monster
         refreshPlayerMonsterFromUser()
+
+        // Refresh player avatar in bottom panel
+        refreshPlayerAvatar()
 
         // Start heartbeat to keep user active
         heartbeatHandler.post(heartbeatRunnable)
@@ -726,6 +740,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun refreshPlayerAvatar() {
+        val userId = AuthManager.userId ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val user = User.fetchById(userId) ?: return@launch
+
+            launch(Dispatchers.Main) {
+                if (user.avatarUrl.isNotBlank()) {
+                    Glide.with(this@MainActivity)
+                        .load(user.avatarUrl)
+                        .circleCrop()
+                        .into(binding.imgPlayer)
+                } else {
+                    // Use default avatar
+                    binding.imgPlayer.setImageResource(android.R.drawable.sym_def_app_icon)
+                }
+            }
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -754,5 +788,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         stopService(serviceIntent)
 
+    }
+
+    override fun onAvatarUpdated(avatarUrl: String) {
+        // Update bottom panel avatar when avatar changes
+        Glide.with(this)
+            .load(avatarUrl)
+            .circleCrop()
+            .into(binding.imgPlayer)
     }
 }

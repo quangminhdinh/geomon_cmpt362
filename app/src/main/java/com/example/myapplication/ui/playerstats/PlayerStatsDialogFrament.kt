@@ -12,9 +12,13 @@ import com.example.myapplication.data.User
 import com.example.myapplication.battle.Monster
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
+import com.bumptech.glide.Glide
 
 
-class PlayerStatsDialogFragment : DialogFragment() {
+class PlayerStatsDialogFragment : DialogFragment(), ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
+
+    private lateinit var imgPlayerAvatar: ImageView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, saved: Bundle?): View {
         return inflater.inflate(R.layout.dialog_player_stats, container, false)
@@ -24,9 +28,15 @@ class PlayerStatsDialogFragment : DialogFragment() {
         val tvPlayerName   = view.findViewById<TextView>(R.id.tvPlayerName)
         val tvPlayerLevel  = view.findViewById<TextView>(R.id.tvPlayerLevel)
         val tvDefaultMon   = view.findViewById<TextView>(R.id.tvDefaultMon)
+        imgPlayerAvatar = view.findViewById(R.id.imgPlayerAvatar)
+        val btnChangeAvatar = view.findViewById<Button>(R.id.btnChangeAvatar)
         val btnClose       = view.findViewById<Button>(R.id.btnCloseStats)
 
         btnClose.setOnClickListener { dismiss() }
+
+        btnChangeAvatar.setOnClickListener {
+            ChangeAvatarDialogFragment().show(childFragmentManager, ChangeAvatarDialogFragment.TAG)
+        }
 
         // Load user + first monster (default mon)
         val userId = AuthManager.userId ?: return
@@ -34,6 +44,14 @@ class PlayerStatsDialogFragment : DialogFragment() {
             val user = User.fetchById(userId) ?: return@launch
             tvPlayerName.text = user.displayName.ifBlank { "Player" }
             tvPlayerLevel.text = "Lv. ${1 + (user.monsterIds.size / 3)}" // placeholder level
+
+            // Load avatar
+            if (user.avatarUrl.isNotBlank()) {
+                Glide.with(this@PlayerStatsDialogFragment)
+                    .load(user.avatarUrl)
+                    .circleCrop()
+                    .into(imgPlayerAvatar)
+            }
 
             user.firstMonsterId?.let { mid ->
                 val mon = Monster.fetchById(mid)
@@ -50,6 +68,14 @@ class PlayerStatsDialogFragment : DialogFragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+    }
+
+    override fun onAvatarUpdated(avatarUrl: String) {
+        // Update avatar immediately when upload completes
+        Glide.with(this)
+            .load(avatarUrl)
+            .circleCrop()
+            .into(imgPlayerAvatar)
     }
 
     companion object { const val TAG = "PlayerStatsDialog" }

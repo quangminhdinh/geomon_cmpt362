@@ -13,7 +13,8 @@ data class User(
     val longitude: Double = 0.0,
     val lastActive: Long = System.currentTimeMillis(),
     val activeMonsterIndex: Int = 0,
-    val bag: Map<String, Int> = emptyMap()// bag containing items
+    val bag: Map<String, Int> = emptyMap(), // bag containing items
+    val avatarUrl: String = "" // Firebase Storage URL for user avatar
 ) {
     // Get the first monster ID (used for battles)
     val firstMonsterId: String?
@@ -27,7 +28,8 @@ data class User(
             "longitude" to longitude,
             "lastActive" to lastActive,
             "activeMonsterIndex" to activeMonsterIndex,
-            "bag" to bag
+            "bag" to bag,
+            "avatarUrl" to avatarUrl
         )
     }
 
@@ -59,7 +61,8 @@ data class User(
                     longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0,
                     lastActive = snapshot.child("lastActive").getValue(Long::class.java) ?: 0L,
                     activeMonsterIndex = indexMonster,
-                    bag = bagMap                         // <-- NEW
+                    bag = bagMap,
+                    avatarUrl = snapshot.child("avatarUrl").getValue(String::class.java) ?: ""
                 )
             } catch (e: Exception) {
                 Log.e("User", "Error parsing user from snapshot: ${e.message}")
@@ -120,6 +123,15 @@ data class User(
         fun updateLastActive(userId: String) {
             FirebaseManager.usersRef.child(userId).updateChildren(
                 mapOf("lastActive" to System.currentTimeMillis())
+            )
+        }
+
+        fun updateAvatarUrl(userId: String, avatarUrl: String) {
+            FirebaseManager.usersRef.child(userId).updateChildren(
+                mapOf(
+                    "avatarUrl" to avatarUrl,
+                    "lastActive" to System.currentTimeMillis()
+                )
             )
         }
 
