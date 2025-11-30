@@ -67,6 +67,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private val zoomValue = 15f
     private var previousPlayerLatLng: LatLng? = null
     private var currentPlayerDirection: String = "down" // down, up, left, right
+    private var cachedPlayerAvatarBitmap: Bitmap? = null
 
     private lateinit var trackingViewModel: TrackingViewModel
     private lateinit var serviceIntent: Intent
@@ -652,7 +653,64 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             drawable.draw(c)
             b
         }
-        return BitmapDescriptorFactory.fromBitmap(bmp)
+
+        // Overlay avatar if available
+        val finalBitmap = if (cachedPlayerAvatarBitmap != null) {
+            overlayAvatarOnMarker(bmp, cachedPlayerAvatarBitmap!!)
+        } else {
+            bmp
+        }
+
+        return BitmapDescriptorFactory.fromBitmap(finalBitmap)
+    }
+
+    private fun overlayAvatarOnMarker(markerBitmap: Bitmap, avatarBitmap: Bitmap): Bitmap {
+        // Create a mutable copy of the marker bitmap
+        val result = markerBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(result)
+
+        val avatarSize = dp(58)
+        val scaledAvatar = Bitmap.createScaledBitmap(avatarBitmap, avatarSize, avatarSize, true)
+
+        // Create circular avatar
+        val circularAvatar = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888)
+        val avatarCanvas = Canvas(circularAvatar)
+        val paint = android.graphics.Paint()
+        paint.isAntiAlias = true
+
+        // Draw circle
+        avatarCanvas.drawCircle(
+            avatarSize / 2f,
+            avatarSize / 2f,
+            avatarSize / 2f,
+            paint
+        )
+
+        // Apply avatar using SRC_IN to clip to circle
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        avatarCanvas.drawBitmap(scaledAvatar, 0f, 0f, paint)
+
+        // Draw white circle border (thicker for better visibility)
+        val borderPaint = android.graphics.Paint()
+        borderPaint.isAntiAlias = true
+        borderPaint.style = android.graphics.Paint.Style.STROKE
+        borderPaint.strokeWidth = dp(3).toFloat() // Increased from 2dp to 3dp
+        borderPaint.color = android.graphics.Color.WHITE
+        avatarCanvas.drawCircle(
+            avatarSize / 2f,
+            avatarSize / 2f,
+            avatarSize / 2f - dp(2).toFloat(),
+            borderPaint
+        )
+
+        // Position avatar at top-center of the marker
+        // Center horizontally and place at the very top
+        val x = dp(20).toFloat()//(result.width - avatarSize) / 2f
+        val y = dp(-3).toFloat()  // Right at the top
+
+        canvas.drawBitmap(circularAvatar, x, y, null)
+
+        return result
     }
 
     private fun calculateDirection(newLatLng: LatLng) {
@@ -804,15 +862,47 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
             launch(Dispatchers.Main) {
                 if (user.avatarUrl.isNotBlank()) {
+                    // Load avatar for bottom panel
                     Glide.with(this@MainActivity)
                         .load(user.avatarUrl)
                         .circleCrop()
                         .into(binding.imgPlayer)
+
+                    // Load avatar bitmap for marker overlay
+                    Glide.with(this@MainActivity)
+                        .asBitmap()
+                        .load(user.avatarUrl)
+                        .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                resource: Bitmap,
+                                transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                            ) {
+                                cachedPlayerAvatarBitmap = resource
+                                // Update marker with new avatar
+                                updatePlayerMarkerWithAvatar()
+                            }
+
+                            override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
+                                // Handle cleanup if needed
+                            }
+                        })
                 } else {
                     // Use default avatar
                     binding.imgPlayer.setImageResource(android.R.drawable.sym_def_app_icon)
+                    cachedPlayerAvatarBitmap = null
                 }
             }
+        }
+    }
+
+    private fun updatePlayerMarkerWithAvatar() {
+        // Update current marker with avatar overlay
+        val currentLatLng = trackingViewModel.latLng.value
+        if (currentLatLng != null && ::googleMap.isInitialized) {
+            playerMarker?.remove()
+            playerMarkerOptions.position(currentLatLng)
+            playerMarkerOptions.icon(getDirectionIcon())
+            playerMarker = googleMap.addMarker(playerMarkerOptions)
         }
     }
 
@@ -852,5 +942,24 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             .load(avatarUrl)
             .circleCrop()
             .into(binding.imgPlayer)
+
+        // Load avatar bitmap for marker overlay
+        Glide.with(this)
+            .asBitmap()
+            .load(avatarUrl)
+            .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                override fun onResourceReady(
+                    resource: Bitmap,
+                    transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                ) {
+                    cachedPlayerAvatarBitmap = resource
+                    // Update marker with new avatar
+                    updatePlayerMarkerWithAvatar()
+                }
+
+                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
+                    // Handle cleanup if needed
+                }
+            })
     }
 }
