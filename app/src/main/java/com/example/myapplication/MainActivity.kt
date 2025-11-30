@@ -77,6 +77,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private val monsterMarkers = mutableListOf<Marker>()
     private val itemMarkers = mutableListOf<Marker>()
     private val otherPlayerMarkers = mutableMapOf<String, Marker>()
+    private val otherPlayerLocations = mutableMapOf<String, LatLng>() // Track last known positions
+    private val otherPlayerDirections = mutableMapOf<String, String>() // Track each player's direction
+    private val otherPlayerAvatars = mutableMapOf<String, Bitmap>() // Cache other players' avatars
     private val nearbyRadius = 0.01 // ~1km radius
     private val monsterThreshold = 10 // minimum monsters in area
     private var playerMonsterId: String? = null
@@ -353,6 +356,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     if (user.lastActive < activeThreshold) {
                         otherPlayerMarkers[userId]?.remove()
                         otherPlayerMarkers.remove(userId)
+                        otherPlayerLocations.remove(userId)
+                        otherPlayerDirections.remove(userId)
                         continue
                     }
 
@@ -360,21 +365,40 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     if (!isWithinRadius(playerLatLng, user.latitude, user.longitude)) {
                         otherPlayerMarkers[userId]?.remove()
                         otherPlayerMarkers.remove(userId)
+                        otherPlayerLocations.remove(userId)
+                        otherPlayerDirections.remove(userId)
                         continue
                     }
 
-                    // Update or create marker
-                    val existingMarker = otherPlayerMarkers[userId]
-                    if (existingMarker != null) {
-                        existingMarker.position = LatLng(user.latitude, user.longitude)
+                    val newLocation = LatLng(user.latitude, user.longitude)
+                    val previousLocation = otherPlayerLocations[userId]
+
+                    // Calculate direction based on movement
+                    val direction = calculateDirectionForPlayer(newLocation, previousLocation)
+
+                    // Update location and direction tracking
+                    otherPlayerLocations[userId] = newLocation
+                    otherPlayerDirections[userId] = direction
+
+                    // Load avatar if not cached
+                    if (user.avatarUrl.isNotBlank() && !otherPlayerAvatars.containsKey(userId)) {
+                        Glide.with(this@MainActivity)
+                            .asBitmap()
+                            .load(user.avatarUrl)
+                            .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                                override fun onResourceReady(
+                                    resource: Bitmap,
+                                    transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                                ) {
+                                    otherPlayerAvatars[userId] = resource
+                                    updateOtherPlayerMarker(userId, newLocation, direction, user.displayName, resource)
+                                }
+
+                                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
+                            })
                     } else {
-                        val marker = googleMap.addMarker(
-                            MarkerOptions()
-                                .position(LatLng(user.latitude, user.longitude))
-                                .title(user.displayName)
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                        )
-                        marker?.let { otherPlayerMarkers[userId] = it }
+                        // Update marker with cached avatar or no avatar
+                        updateOtherPlayerMarker(userId, newLocation, direction, user.displayName, otherPlayerAvatars[userId])
                     }
                 }
             }
@@ -383,6 +407,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                 Log.e("GeoMon", "Failed to fetch other players: ${error.message}")
             }
         })
+    }
+
+    private fun updateOtherPlayerMarker(userId: String, location: LatLng, direction: String, displayName: String, avatarBitmap: Bitmap?) {
+        // Remove existing marker
+        otherPlayerMarkers[userId]?.remove()
+
+        // Create new marker with directional icon and avatar
+        val marker = googleMap.addMarker(
+            MarkerOptions()
+                .position(location)
+                .title(displayName)
+                .icon(getOtherPlayerDirectionIcon(direction, avatarBitmap))
+        )
+        marker?.let { otherPlayerMarkers[userId] = it }
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -727,6 +765,56 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             // More horizontal movement
             currentPlayerDirection = if (lngDiff > 0) "right" else "left"
         }
+    }
+
+    private fun calculateDirectionForPlayer(newLatLng: LatLng, previousLatLng: LatLng?): String {
+        if (previousLatLng == null) return "down"
+
+        val latDiff = newLatLng.latitude - previousLatLng.latitude
+        val lngDiff = newLatLng.longitude - previousLatLng.longitude
+
+        // Determine primary direction based on larger difference
+        return if (Math.abs(latDiff) > Math.abs(lngDiff)) {
+            // More vertical movement
+            if (latDiff > 0) "up" else "down"
+        } else {
+            // More horizontal movement
+            if (lngDiff > 0) "right" else "left"
+        }
+    }
+
+    private fun getOtherPlayerDirectionIcon(direction: String, avatarBitmap: Bitmap?, sizeDp: Int = 42): BitmapDescriptor {
+        val resId = resources.getIdentifier(direction, "drawable", packageName)
+
+        if (resId == 0) {
+            // Fallback to default marker if direction image not found
+            return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+        }
+
+        val drawable: Drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+
+        val w = dp(sizeDp)
+        val h = dp(sizeDp)
+
+        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        } else {
+            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            drawable.setBounds(0, 0, w, h)
+            drawable.draw(c)
+            b
+        }
+
+        // Overlay avatar if available
+        val finalBitmap = if (avatarBitmap != null) {
+            overlayAvatarOnMarker(bmp, avatarBitmap)
+        } else {
+            bmp
+        }
+
+        return BitmapDescriptorFactory.fromBitmap(finalBitmap)
     }
 
     private fun monsterIconByName(name: String, sizeDp: Int = 42): BitmapDescriptor {
