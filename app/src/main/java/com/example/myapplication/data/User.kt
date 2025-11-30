@@ -118,6 +118,7 @@ data class User(
         }
 
         fun addMonster(userId: String, monsterId: String) {
+            Log.e("User", "Added monster $monsterId to user $userId")
             FirebaseManager.usersRef.child(userId).child("monsterIds").get()
                 .addOnSuccessListener { snapshot ->
                     val currentIds = mutableListOf<String>()

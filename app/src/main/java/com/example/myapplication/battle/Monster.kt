@@ -3,12 +3,14 @@ package com.example.myapplication.battle
 import java.io.Serializable
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MoveEntity
 import com.example.myapplication.data.FirebaseManager
 import com.google.firebase.database.DataSnapshot
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.floor
 
 class Monster(
     val id: String = "",  // Firebase auto-generated ID
@@ -21,13 +23,21 @@ class Monster(
 
     val spritePath: String,
 
-    val maxHp: Float,
+
+    var maxHp: Float,
     var currentHp: Float,
-    val attack: Float,
-    val specialAttack: Float,
-    val defense: Float,
-    val specialDefense: Float,
-    val speed: Float,
+    var attack: Float,
+    var specialAttack: Float,
+    var defense: Float,
+    var specialDefense: Float,
+    var speed: Float,
+    //Base state which are final
+    val baseMaxHp: Float = maxHp,
+    val baseAttack: Float = attack,
+    val baseSpecialAttack: Float = specialAttack,
+    val baseDefense: Float = defense,
+    val baseSpecialDefense: Float = specialDefense,
+    val baseSpeed: Float = speed,
 
     // four battle moves - strings
     var move1: String? = null,
@@ -52,6 +62,38 @@ class Monster(
         get() = ownerId.isNullOrEmpty()
 
     companion object {
+
+        /**
+         * Level scaling inspired by Pokemon: Stat = floor(floor((2 * B) * (L / 100) + 5))
+
+         */
+        fun levelScaling(monster: Monster): Monster {
+
+            fun scaled(base: Float, level: Int): Float {
+                val I = 31
+                val E = 252
+                val value = (2f * (base)+ I + E) * (level.toFloat() / 100f) + 5f
+                return floor(floor(value))
+            }
+
+            val L = monster.level
+
+            val oldMax = if (monster.maxHp <= 0f) 1f else monster.maxHp
+            val hpRatio = monster.currentHp / oldMax
+
+            val newMaxHp = scaled(monster.baseMaxHp, L)
+            monster.maxHp = newMaxHp
+            monster.currentHp = (hpRatio * newMaxHp).coerceIn(0f, newMaxHp)
+
+            monster.attack         = scaled(monster.baseAttack,         L)
+            monster.specialAttack  = scaled(monster.baseSpecialAttack,  L)
+            monster.defense        = scaled(monster.baseDefense,        L)
+            monster.specialDefense = scaled(monster.baseSpecialDefense, L)
+            monster.speed          = scaled(monster.baseSpeed,          L)
+
+            return monster
+        }
+
         // initializer a monster with the attributes from the appdatabase
         suspend fun initializeByName(
             context: Context,
@@ -79,10 +121,10 @@ class Monster(
             val species = tempSpecies
 
             // Get MoveEntities with names
-            val move1Entity = species.move1Id?.let { dao.getMoveByIdNow(it) }
-            val move2Entity = species.move2Id?.let { dao.getMoveByIdNow(it) }
-            val move3Entity = species.move3Id?.let { dao.getMoveByIdNow(it) }
-            val move4Entity = species.move4Id?.let { dao.getMoveByIdNow(it) }
+            val move1Entity: MoveEntity? = species.move1Id?.let { dao.getMoveByIdNow(it) }
+            val move2Entity: MoveEntity? = species.move2Id?.let { dao.getMoveByIdNow(it) }
+            val move3Entity: MoveEntity? = species.move3Id?.let { dao.getMoveByIdNow(it) }
+            val move4Entity: MoveEntity? = species.move4Id?.let { dao.getMoveByIdNow(it) }
 
             val move1Name = move1Entity?.name
             val move2Name = move2Entity?.name
@@ -107,6 +149,7 @@ class Monster(
                 defense = species.def.toFloat(),
                 specialDefense = species.spd.toFloat(),
                 speed = species.spe.toFloat(),
+                // base* default to the values above
                 move1 = move1Name,
                 move2 = move2Name,
                 move3 = move3Name,
@@ -117,9 +160,14 @@ class Monster(
                 longitude = longitude
             )
 
-            // Upload to Firebase Realtime Database
+
+            levelScaling(monster)
+
             monsterRef.setValue(monster.toMap())
-            Log.d("Monster", "Uploaded monster ${monster.name} with ID: $monsterId at ($latitude, $longitude)")
+            Log.d(
+                "Monster",
+                "Uploaded monster ${monster.name} with ID: $monsterId at ($latitude, $longitude)"
+            )
 
             return monster
         }
@@ -132,7 +180,39 @@ class Monster(
                 val move3Name = snapshot.child("move3").getValue(String::class.java)
                 val move4Name = snapshot.child("move4").getValue(String::class.java)
 
-                Monster(
+
+                val maxHpSaved =
+                    snapshot.child("maxHp").getValue(Float::class.java) ?: 50f
+                val currentHpSaved =
+                    snapshot.child("currentHp").getValue(Float::class.java) ?: maxHpSaved
+                val attackSaved =
+                    snapshot.child("attack").getValue(Float::class.java) ?: 20f
+                val specialAttackSaved =
+                    snapshot.child("specialAttack").getValue(Float::class.java) ?: 20f
+                val defenseSaved =
+                    snapshot.child("defense").getValue(Float::class.java) ?: 20f
+                val specialDefenseSaved =
+                    snapshot.child("specialDefense").getValue(Float::class.java) ?: 20f
+                val speedSaved =
+                    snapshot.child("speed").getValue(Float::class.java) ?: 20f
+
+
+                val baseMaxHp =
+                    snapshot.child("baseMaxHp").getValue(Float::class.java) ?: maxHpSaved
+                val baseAttack =
+                    snapshot.child("baseAttack").getValue(Float::class.java) ?: attackSaved
+                val baseSpecialAttack =
+                    snapshot.child("baseSpecialAttack").getValue(Float::class.java)
+                        ?: specialAttackSaved
+                val baseDefense =
+                    snapshot.child("baseDefense").getValue(Float::class.java) ?: defenseSaved
+                val baseSpecialDefense =
+                    snapshot.child("baseSpecialDefense").getValue(Float::class.java)
+                        ?: specialDefenseSaved
+                val baseSpeed =
+                    snapshot.child("baseSpeed").getValue(Float::class.java) ?: speedSaved
+
+                val monster = Monster(
                     id = snapshot.key ?: "",
                     name = snapshot.child("name").getValue(String::class.java) ?: return null,
                     level = snapshot.child("level").getValue(Int::class.java) ?: 1,
@@ -140,23 +220,37 @@ class Monster(
                     type2 = snapshot.child("type2").getValue(String::class.java),
                     type3 = snapshot.child("type3").getValue(String::class.java),
                     spritePath = snapshot.child("spritePath").getValue(String::class.java) ?: "",
-                    maxHp = snapshot.child("maxHp").getValue(Float::class.java) ?: 50f,
-                    currentHp = snapshot.child("currentHp").getValue(Float::class.java) ?: 50f,
-                    attack = snapshot.child("attack").getValue(Float::class.java) ?: 20f,
-                    specialAttack = snapshot.child("specialAttack").getValue(Float::class.java) ?: 20f,
-                    defense = snapshot.child("defense").getValue(Float::class.java) ?: 20f,
-                    specialDefense = snapshot.child("specialDefense").getValue(Float::class.java) ?: 20f,
-                    speed = snapshot.child("speed").getValue(Float::class.java) ?: 20f,
+                    maxHp = maxHpSaved,
+                    currentHp = currentHpSaved,
+                    attack = attackSaved,
+                    specialAttack = specialAttackSaved,
+                    defense = defenseSaved,
+                    specialDefense = specialDefenseSaved,
+                    speed = speedSaved,
+                    baseMaxHp = baseMaxHp,
+                    baseAttack = baseAttack,
+                    baseSpecialAttack = baseSpecialAttack,
+                    baseDefense = baseDefense,
+                    baseSpecialDefense = baseSpecialDefense,
+                    baseSpeed = baseSpeed,
                     move1 = move1Name,
                     move2 = move2Name,
                     move3 = move3Name,
                     move4 = move4Name,
-                    learnableMoves = listOfNotNull(move1Name, move2Name, move3Name, move4Name),
-                    isFainted = snapshot.child("isFainted").getValue(Boolean::class.java) ?: false,
+                    learnableMoves = listOfNotNull(
+                        move1Name,
+                        move2Name,
+                        move3Name,
+                        move4Name
+                    ),
+                    isFainted = snapshot.child("isFainted")
+                        .getValue(Boolean::class.java) ?: false,
                     latitude = snapshot.child("latitude").getValue(Double::class.java) ?: 0.0,
                     longitude = snapshot.child("longitude").getValue(Double::class.java) ?: 0.0,
                     ownerId = snapshot.child("ownerId").getValue(String::class.java)
                 )
+
+                levelScaling(monster)
             } catch (e: Exception) {
                 Log.e("Monster", "Error parsing monster from snapshot: ${e.message}")
                 null
@@ -182,7 +276,7 @@ class Monster(
                 }
         }
 
-        // prevents errors when a monster back ups improperly
+        // prevents errors when a monster backs up improperly
         private fun createDefault(
             name: String = "DefaultMon",
             id: String = "",
@@ -206,6 +300,7 @@ class Monster(
                 defense = 20f,
                 specialDefense = 20f,
                 speed = 20f,
+
                 move1 = tackleName,
                 move2 = null,
                 move3 = null,
@@ -217,6 +312,8 @@ class Monster(
             )
         }
     }
+
+
     fun takeDamage(damage: Float) {
         currentHp -= damage
         if (currentHp <= 0f) {
@@ -225,26 +322,27 @@ class Monster(
         }
         syncHpToFirebase()
     }
-    //update fire base so the pokemon have lower hp
-    private fun syncHpToFirebase() {
+    //public method for leveling up a monster by scaling
+     fun levelUp(amount: Int) {
+        level += amount
+        levelScaling(this)
+        syncHpToFirebase()
+    }
 
+    private fun syncHpToFirebase() {
         if (id.isEmpty()) {
+            Log.e("Monster", "Cannot sync HP: Monster has no ID")
             return
         }
 
-        val updates = mapOf(
-            "currentHp" to currentHp,
-            "isFainted" to isFainted
-        )
-
-        FirebaseManager.monstersRef
-            .child(id)
-            .updateChildren(updates)
+        FirebaseManager.monstersRef.child(id).child("currentHp").setValue(currentHp)
+            .addOnSuccessListener {
+                Log.d("Monster", "Synced HP for monster $id: $currentHp")
+            }
             .addOnFailureListener { e ->
-                Log.e("Monster", "Failed to update HP in Firebase: ${e.message}")
+                Log.e("Monster", "Failed to sync HP for monster $id: ${e.message}")
             }
     }
-
     // heal health, called by healing moves and bag items
     fun healDamage(amount: Float) {
         if (isFainted) {
@@ -255,13 +353,11 @@ class Monster(
             currentHp = maxHp
         }
 
+
         syncHpToFirebase()
     }
-
-
     fun isAlive(): Boolean = !isFainted
     // damage/heal/toMap unchanged except for moves part:
-
     fun toMap(): Map<String, Any?> {
         return mapOf(
             "name" to name,
@@ -277,6 +373,15 @@ class Monster(
             "defense" to defense,
             "specialDefense" to specialDefense,
             "speed" to speed,
+
+            // store base stats so we can rescale later
+            "baseMaxHp" to baseMaxHp,
+            "baseAttack" to baseAttack,
+            "baseSpecialAttack" to baseSpecialAttack,
+            "baseDefense" to baseDefense,
+            "baseSpecialDefense" to baseSpecialDefense,
+            "baseSpeed" to baseSpeed,
+
             "move1" to move1,
             "move2" to move2,
             "move3" to move3,

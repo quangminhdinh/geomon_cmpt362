@@ -18,5 +18,36 @@
     "displayDescription": "Restores 50 HP from your chosen monster.",
     "iconRoot": "item_super_health_potion",
     "colorDisplay": ""
+  },
+  {
+    "id": "LEVEL_UP_SCROLL",
+    "displayName": "Level Up Scroll",
+    "healing": 0,
+    "sideAffect": 1,
+    "effect": "candy1",
+    "displayDescription": "Grants a level to a monster.",
+    "iconRoot": "item_level_up_scroll",
+    "colorDisplay": ""
+  },
+  {
+    "id": "LEGENDARY_LEVEL_UP_SCROLL",
+    "displayName": "Legendary Level Up Scroll",
+    "healing": 0,
+    "sideAffect": 5,
+    "effect": "candy1",
+    "displayDescription": "Grants a level to a monster by 5 levels.",
+    "iconRoot": "item_legendary_level_up_scroll",
+    "colorDisplay": ""
+  },
+  {
+    "id": "Water_Badge",
+    "displayName": "Water Badge",
+    "healing": 0,
+    "sideAffect": 0,
+    "effect": "cosmetic",
+    "displayDescription": "A rare collectable from defeating a certain water monster ",
+    "iconRoot": "item_water",
+    "colorDisplay": ""
   }
+
 ]

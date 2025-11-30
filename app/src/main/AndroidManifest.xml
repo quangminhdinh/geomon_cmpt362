@@ -54,6 +54,7 @@
 
         <activity android:name=".ui.bag.BagActivity" />
         <activity android:name=".ui.bag.HealTargetActivity" />
+        <activity android:name=".ui.bag.AllTargetActivity" />
 
         <!-- TrackingService for location updates -->
         <service

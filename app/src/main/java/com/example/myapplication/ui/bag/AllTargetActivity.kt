@@ -18,7 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class HealTargetActivity : AppCompatActivity() {
+class AllTargetActivity : AppCompatActivity() {
 
     private lateinit var rvPokedex: RecyclerView
     private lateinit var btnBack: Button
@@ -44,32 +44,31 @@ class HealTargetActivity : AppCompatActivity() {
 
         btnBack.setOnClickListener { finish() }
 
-        loadDamagedMonsters()
+        loadAllMonsters()
     }
 
     // Sorts Only monsters with low hp
-    private fun loadDamagedMonsters() {
+    private fun loadAllMonsters() {
         val userId = AuthManager.userId
         if (userId == null) {
-            Log.e("HealTargetActivity", "User not signed in")
+            Log.e("LevelUpTargetActivity", "User not signed in")
             return
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
             val user = User.fetchById(userId)
             if (user == null) {
-                Log.e("HealTargetActivity", "Failed to fetch user")
+                Log.e("LevelUpTargetActivity", "Failed to fetch user")
                 return@launch
             }
 
             val monsters = mutableListOf<Monster>()
             for (monsterId in user.monsterIds) {
                 val monster = Monster.fetchById(monsterId)
-                if (monster != null && monster.currentHp != monster.maxHp) {
+                if (monster != null) {
                     monsters.add(monster)
                 }
             }
-
             withContext(Dispatchers.Main) {
                 monsterList.clear()
                 monsterList.addAll(monsters)
@@ -77,7 +76,7 @@ class HealTargetActivity : AppCompatActivity() {
             }
         }
     }
-//Tapping a monster results in the item consumed, monster healed firebase sync
+//Tapping a monster results in the item consumed. monster levels on tap and firebase sync
     private fun onMonsterClicked(monster: Monster) {
         val userId = AuthManager.userId
         if (userId == null) {
@@ -86,45 +85,38 @@ class HealTargetActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch(Dispatchers.IO) {
-            val item = Item.searchByDisplayName(this@HealTargetActivity, itemDisplayName)
+            val item = Item.searchByDisplayName(this@AllTargetActivity, itemDisplayName)
             if (item == null) {
                 Log.e("HealTargetActivity", "Item isn't found in DB: $itemDisplayName")
                 return@launch
             }
-
-            val amount = item.returnAffect() ?: 0
-            if (amount <= 0) {
-                Log.e("HealTargetActivity", "Item has no effect: ${item.effect}")
-                return@launch
-            }
-
-
-            if (monster.currentHp != monster.maxHp) {
-                val heal = amount.toFloat()
-                monster.healDamage(heal)
+            if (item.effect == "candy1") {
+                val amount = item.sideAffect
+                monster.levelUp(amount)
+                var originalLevel = monster.level - amount
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
-                        this@HealTargetActivity,
-                        "${monster.name} healed ${heal.toInt()} HP",
+                        this@AllTargetActivity,
+                        "${monster.name} leveled up from ${originalLevel} to ${monster.level}",
                         Toast.LENGTH_LONG
                     ).show()
                 }
+
                 if (monster.id.isNotEmpty()) {
-                    val updates = mapOf(
-                        "currentHp" to monster.currentHp,
-                        "isFainted" to monster.isFainted
-                    )
-                    FirebaseManager.monstersRef.child(monster.id).updateChildren(updates)
+                    FirebaseManager.monstersRef.child(monster.id)
+                        .setValue(monster.toMap())
                 } else {
-                    Log.e("HealTargetActivity", "Monster has empty id")
+                    Log.e("LevelUpTargetActivity", "Monster has empty id")
+                }
+
+                User.removeByItemName(userId, item.displayName, 1)
+
+
+                withContext(Dispatchers.Main) {
+                    finish()
                 }
             }
 
-            User.removeByItemName(userId, item.displayName, 1)
-
-            withContext(Dispatchers.Main) {
-                finish()
-            }
         }
     }
 }
