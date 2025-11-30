@@ -21,6 +21,7 @@ import com.example.myapplication.data.AuthManager
 import com.example.myapplication.data.User
 import com.example.myapplication.data.FirebaseManager
 import android.widget.LinearLayout
+import android.widget.Toast
 
 
 class BattleActivity : ComponentActivity() {
@@ -422,18 +423,30 @@ class BattleActivity : ComponentActivity() {
         mon.move3?.let { Log.d("BattleStats", "   Move3: $it") }
         mon.move4?.let { Log.d("BattleStats", "   Move4: $it") }
     }
-    // awarding the player when winning a potion
+    // awarding the player with a gatcha system
     private fun giveVictoryRewards() {
         val userId = AuthManager.userId ?: return
 
 
-        User.addItem(userId, "Health Potion", 1)
+        User.addItem(userId, "Level Up Scroll", 1)
 
+        if (opponent.type1 == "") {
+            User.addItem(userId, "Water Badge", 1)
+            Toast.makeText(this, "You received a Water Badge!", Toast.LENGTH_SHORT).show()
 
+        }// add later for other rewards
         val roll = Random.nextDouble()
-        if (roll < 0.2) {
-            User.addItem(userId, "Super Health Potion", 1)
+        if (roll > 0.2) {
+            User.addItem(userId, "Level Up Scroll", 1)
+            Toast.makeText(this, "You received a Level Up Scroll!", Toast.LENGTH_SHORT).show()
+
+        } else {
+            User.addItem(userId, "Legendary Level Up Scroll", 1)
+            Toast.makeText(this, "You received a Legendary Level Up Scroll!", Toast.LENGTH_SHORT).show()
+
         }
+
+
     }
     //despawns monsters after running from them
     private fun runFromBattle() {

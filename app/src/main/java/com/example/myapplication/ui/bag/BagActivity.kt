@@ -81,7 +81,7 @@ class BagActivity : AppCompatActivity() {
 
             when (item.effect) {
                 "healing" -> openHealTargetSelection(item)
-
+                "candy1" -> openLevelUpSelection(item)
                 else -> {
                     //add rare candies for leveling?
                 }
@@ -93,6 +93,14 @@ class BagActivity : AppCompatActivity() {
     private suspend fun openHealTargetSelection(item: Item) {
         withContext(Dispatchers.Main) {
             val intent = Intent(this@BagActivity, HealTargetActivity::class.java)
+            intent.putExtra("item_display_name", item.displayName)
+            startActivity(intent)
+        }
+    }
+
+    private suspend fun openLevelUpSelection(item: Item) {
+        withContext(Dispatchers.Main) {
+            val intent = Intent(this@BagActivity, AllTargetActivity::class.java)
             intent.putExtra("item_display_name", item.displayName)
             startActivity(intent)
         }
