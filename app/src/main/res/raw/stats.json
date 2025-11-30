@@ -24,7 +24,6 @@
     "move4": "Mud Shot",
     "sprite": "sprites/Electricoon.png"
   },
-
   {
     "id": "Watercoon",
     "name": "Watercoon",
@@ -49,7 +48,6 @@
     "move4": "Mud Shot",
     "sprite": "sprites/Watercoon.png"
   },
-
   {
     "id": "Molediver",
     "name": "Molediver",
@@ -73,5 +71,437 @@
     "move3": "Ignite",
     "move4": "Grasp",
     "sprite": "sprites/Molediver.png"
+  },
+  {
+    "id": "Flamewing",
+    "name": "Flamewing",
+    "types": ["fire"],
+    "baseStats": {
+      "hp": 78,
+      "atk": 84,
+      "def": 78,
+      "spa": 109,
+      "spd": 85,
+      "spe": 100
+    },
+    "growthRate": "medium_slow",
+    "baseExp": 240,
+    "catchRate": 45,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Ignite",
+    "move2": "Searing Charge",
+    "move3": "Sunfire Blast",
+    "move4": "Slash",
+    "sprite": "sprites/Flamewing.png"
+  },
+  {
+    "id": "Frostfang",
+    "name": "Frostfang",
+    "types": ["ice"],
+    "baseStats": {
+      "hp": 95,
+      "atk": 125,
+      "def": 79,
+      "spa": 60,
+      "spd": 100,
+      "spe": 81
+    },
+    "growthRate": "slow",
+    "baseExp": 216,
+    "catchRate": 45,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Flash Frost",
+    "move2": "Frostbite",
+    "move3": "Blizzard",
+    "move4": "Furious Bite",
+    "sprite": "sprites/Frostfang.png"
+  },
+  {
+    "id": "Thornix",
+    "name": "Thornix",
+    "types": ["grass"],
+    "baseStats": {
+      "hp": 80,
+      "atk": 82,
+      "def": 83,
+      "spa": 100,
+      "spd": 100,
+      "spe": 80
+    },
+    "growthRate": "medium_slow",
+    "baseExp": 236,
+    "catchRate": 45,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Grasp",
+    "move2": "Solar Beam",
+    "move3": "Thorn Blade",
+    "move4": "Deadly Spine",
+    "sprite": "sprites/Thornix.png"
+  },
+  {
+    "id": "Boulderback",
+    "name": "Boulderback",
+    "types": ["rock"],
+    "baseStats": {
+      "hp": 120,
+      "atk": 100,
+      "def": 130,
+      "spa": 55,
+      "spd": 65,
+      "spe": 30
+    },
+    "growthRate": "slow",
+    "baseExp": 184,
+    "catchRate": 75,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Stone Punch",
+    "move2": "Rock Edge",
+    "move3": "Ancient Power",
+    "move4": "Earthquake",
+    "sprite": "sprites/Boulderback.png"
+  },
+  {
+    "id": "Spectral",
+    "name": "Spectral",
+    "types": ["ghost"],
+    "baseStats": {
+      "hp": 60,
+      "atk": 65,
+      "def": 60,
+      "spa": 130,
+      "spd": 75,
+      "spe": 110
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 225,
+    "catchRate": 45,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Shadow Ball",
+    "move2": "Hex",
+    "move3": "Spirit Dive",
+    "move4": "Shade Slash",
+    "sprite": "sprites/Spectral.png"
+  },
+  {
+    "id": "Drakonis",
+    "name": "Drakonis",
+    "types": ["dragon"],
+    "baseStats": {
+      "hp": 91,
+      "atk": 134,
+      "def": 95,
+      "spa": 100,
+      "spd": 100,
+      "spe": 80
+    },
+    "growthRate": "slow",
+    "baseExp": 300,
+    "catchRate": 45,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Dragon Claw",
+    "move2": "Outrage",
+    "move3": "Dragon Breath",
+    "move4": "Falling Star",
+    "sprite": "sprites/Drakonis.png"
+  },
+  {
+    "id": "Voltail",
+    "name": "Voltail",
+    "types": ["electric"],
+    "baseStats": {
+      "hp": 60,
+      "atk": 90,
+      "def": 55,
+      "spa": 90,
+      "spd": 80,
+      "spe": 130
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 218,
+    "catchRate": 75,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Flash",
+    "move2": "Volt Bash",
+    "move3": "Thundering Shuriken",
+    "move4": "Quick Attack",
+    "sprite": "sprites/Voltail.png"
+  },
+  {
+    "id": "Aquaray",
+    "name": "Aquaray",
+    "types": ["water"],
+    "baseStats": {
+      "hp": 85,
+      "atk": 75,
+      "def": 70,
+      "spa": 115,
+      "spd": 90,
+      "spe": 100
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 210,
+    "catchRate": 60,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Water Trident",
+    "move2": "Aqua Burst",
+    "move3": "Hydro Vortex",
+    "move4": "Flash Frost",
+    "sprite": "sprites/Aquaray.png"
+  },
+  {
+    "id": "Pyroclaw",
+    "name": "Pyroclaw",
+    "types": ["fire"],
+    "baseStats": {
+      "hp": 70,
+      "atk": 110,
+      "def": 65,
+      "spa": 85,
+      "spd": 70,
+      "spe": 105
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 195,
+    "catchRate": 90,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Ignite",
+    "move2": "Searing Charge",
+    "move3": "Volcanic Rupture",
+    "move4": "Slash",
+    "sprite": "sprites/Pyroclaw.png"
+  },
+  {
+    "id": "Terramaw",
+    "name": "Terramaw",
+    "types": ["ground"],
+    "baseStats": {
+      "hp": 105,
+      "atk": 130,
+      "def": 80,
+      "spa": 45,
+      "spd": 70,
+      "spe": 70
+    },
+    "growthRate": "medium_slow",
+    "baseExp": 220,
+    "catchRate": 50,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Earthquake",
+    "move2": "Tunnel",
+    "move3": "Mud Shot",
+    "move4": "Sand Blast",
+    "sprite": "sprites/Terramaw.png"
+  },
+  {
+    "id": "Leafblade",
+    "name": "Leafblade",
+    "types": ["grass"],
+    "baseStats": {
+      "hp": 65,
+      "atk": 95,
+      "def": 70,
+      "spa": 60,
+      "spd": 75,
+      "spe": 115
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 175,
+    "catchRate": 120,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Grasp",
+    "move2": "Thorn Blade",
+    "move3": "Solar Beam",
+    "move4": "Quick Attack",
+    "sprite": "sprites/Leafblade.png"
+  },
+  {
+    "id": "Glaciax",
+    "name": "Glaciax",
+    "types": ["ice"],
+    "baseStats": {
+      "hp": 70,
+      "atk": 50,
+      "def": 90,
+      "spa": 120,
+      "spd": 100,
+      "spe": 85
+    },
+    "growthRate": "medium_slow",
+    "baseExp": 230,
+    "catchRate": 55,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Blizzard",
+    "move2": "Frost Breath",
+    "move3": "Flash Frost",
+    "move4": "Water Trident",
+    "sprite": "sprites/Glaciax.png"
+  },
+  {
+    "id": "Stoneheart",
+    "name": "Stoneheart",
+    "types": ["rock"],
+    "baseStats": {
+      "hp": 80,
+      "atk": 115,
+      "def": 110,
+      "spa": 50,
+      "spd": 80,
+      "spe": 55
+    },
+    "growthRate": "slow",
+    "baseExp": 195,
+    "catchRate": 70,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Furious Bite",
+    "move2": "Stone Punch",
+    "move3": "Rock Edge",
+    "move4": "Earthquake",
+    "sprite": "sprites/Stoneheart.png"
+  },
+  {
+    "id": "Phantasm",
+    "name": "Phantasm",
+    "types": ["ghost"],
+    "baseStats": {
+      "hp": 55,
+      "atk": 50,
+      "def": 65,
+      "spa": 135,
+      "spd": 95,
+      "spe": 120
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 225,
+    "catchRate": 50,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Shadow Ball",
+    "move2": "Hex",
+    "move3": "Shade Slash",
+    "move4": "Breath of Light",
+    "sprite": "sprites/Phantasm.png"
+  },
+  {
+    "id": "Wyrmscale",
+    "name": "Wyrmscale",
+    "types": ["dragon"],
+    "baseStats": {
+      "hp": 85,
+      "atk": 120,
+      "def": 85,
+      "spa": 95,
+      "spd": 90,
+      "spe": 95
+    },
+    "growthRate": "slow",
+    "baseExp": 280,
+    "catchRate": 40,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Dragon Breath",
+    "move2": "Dragon Claw",
+    "move3": "Outrage",
+    "move4": "Searing Charge",
+    "sprite": "sprites/Wyrmscale.png"
+  },
+  {
+    "id": "Thunderpaw",
+    "name": "Thunderpaw",
+    "types": ["electric"],
+    "baseStats": {
+      "hp": 75,
+      "atk": 100,
+      "def": 60,
+      "spa": 85,
+      "spd": 70,
+      "spe": 125
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 200,
+    "catchRate": 85,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Flash",
+    "move2": "Volt Bash",
+    "move3": "Storm Surge",
+    "move4": "Slash",
+    "sprite": "sprites/Thunderpaw.png"
+  },
+  {
+    "id": "Tidecrest",
+    "name": "Tidecrest",
+    "types": ["water"],
+    "baseStats": {
+      "hp": 95,
+      "atk": 85,
+      "def": 90,
+      "spa": 100,
+      "spd": 95,
+      "spe": 75
+    },
+    "growthRate": "medium_slow",
+    "baseExp": 215,
+    "catchRate": 65,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Fin Smash",
+    "move2": "Water Trident",
+    "move3": "Aqua Burst",
+    "move4": "Ancient Power",
+    "sprite": "sprites/Tidecrest.png"
+  },
+  {
+    "id": "Embercrest",
+    "name": "Embercrest",
+    "types": ["fire"],
+    "baseStats": {
+      "hp": 88,
+      "atk": 95,
+      "def": 75,
+      "spa": 110,
+      "spd": 80,
+      "spe": 92
+    },
+    "growthRate": "medium_fast",
+    "baseExp": 205,
+    "catchRate": 70,
+    "evolution": {
+      "from": "none"
+    },
+    "move1": "Ignite",
+    "move2": "Sunfire Blast",
+    "move3": "Volcanic Rupture",
+    "move4": "Dragon Breath",
+    "sprite": "sprites/Embercrest.png"
   }
 ]
