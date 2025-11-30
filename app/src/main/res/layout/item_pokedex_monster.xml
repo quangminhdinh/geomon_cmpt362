@@ -40,6 +40,14 @@
             android:text="Lv. 1"
             android:textSize="12sp" />
 
+        <TextView
+            android:id="@+id/tvMonsterHp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HP: 0/0"
+            android:textSize="11sp"
+            android:textColor="#666666" />
+
     </LinearLayout>
 
 </androidx.cardview.widget.CardView>

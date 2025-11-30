@@ -53,7 +53,11 @@ import com.google.android.gms.maps.model.BitmapDescriptor
 import kotlin.math.roundToInt
 import com.example.myapplication.spawn.ItemSpawner
 import com.example.myapplication.spawn.ItemSpawn
-class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+import android.os.Handler
+import android.os.Looper
+import com.bumptech.glide.Glide
+import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
 
     private lateinit var binding: ActivityMainBinding
 
@@ -61,6 +65,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var playerMarkerOptions: MarkerOptions
     private var playerMarker: Marker? = null
     private val zoomValue = 15f
+    private var previousPlayerLatLng: LatLng? = null
+    private var currentPlayerDirection: String = "down" // down, up, left, right
+    private var cachedPlayerAvatarBitmap: Bitmap? = null
 
     private lateinit var trackingViewModel: TrackingViewModel
     private lateinit var serviceIntent: Intent
@@ -70,11 +77,27 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private val monsterMarkers = mutableListOf<Marker>()
     private val itemMarkers = mutableListOf<Marker>()
     private val otherPlayerMarkers = mutableMapOf<String, Marker>()
+    private val otherPlayerLocations = mutableMapOf<String, LatLng>() // Track last known positions
+    private val otherPlayerDirections = mutableMapOf<String, String>() // Track each player's direction
+    private val otherPlayerAvatars = mutableMapOf<String, Bitmap>() // Cache other players' avatars
+    private var otherPlayersListener: ValueEventListener? = null
     private val nearbyRadius = 0.01 // ~1km radius
     private val monsterThreshold = 10 // minimum monsters in area
     private var playerMonsterId: String? = null
     private lateinit var permissionHandler: PermissionHandler
     private var isServiceBound = false
+
+    private val heartbeatHandler = Handler(Looper.getMainLooper())
+    private val heartbeatInterval = 30000L // 30 seconds
+    private val heartbeatRunnable = object : Runnable {
+        override fun run() {
+            AuthManager.userId?.let { userId ->
+                User.updateLastActive(userId)
+                Log.d("GeoMon", "Updated lastActive timestamp")
+            }
+            heartbeatHandler.postDelayed(this, heartbeatInterval)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -137,7 +160,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                     longitude = 0.0
                 )
                 playerMonsterId = playerMonster.id
-                withContext(Dispatchers.Main) { updateMonsterPanel() }
+                withContext(Dispatchers.Main) {
+                    updateMonsterPanel()
+                    refreshPlayerAvatar()
+                }
 
                 // Create or update user with player monster ID
                 User.createOrUpdate(
@@ -162,12 +188,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         longitude = 0.0
                     )
                     playerMonsterId = playerMonster.id
-                    withContext(Dispatchers.Main) { updateMonsterPanel() }
+                    withContext(Dispatchers.Main) {
+                        updateMonsterPanel()
+                        refreshPlayerAvatar()
+                    }
                     User.addMonster(userId, playerMonster.id)
                     Log.d("GeoMon", "Created new player monster: ${playerMonster.id}")
                 } else {
                     playerMonsterId = existingMonster.id
-                    withContext(Dispatchers.Main) { updateMonsterPanel() }
+                    withContext(Dispatchers.Main) {
+                        updateMonsterPanel()
+                        refreshPlayerAvatar()
+                    }
                     Log.d("GeoMon", "First monster verified: ${existingMonster.name} (${existingMonster.id})")
                 }
             }
@@ -213,8 +245,29 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         // When coming back from MonsterInfoActivity, refresh active monster
         refreshPlayerMonsterFromUser()
 
+        // Refresh player avatar in bottom panel
+        refreshPlayerAvatar()
+
+        // Start heartbeat to keep user active
+        heartbeatHandler.post(heartbeatRunnable)
+
+        // Refresh monsters on map (in case any were defeated/captured in battle)
+        if (::googleMap.isInitialized) {
+            val currentLatLng = trackingViewModel.latLng.value
+            if (currentLatLng != null) {
+                fetchAndDisplayNearbyMonsters(currentLatLng)
+                displayOtherPlayers(currentLatLng)
+            }
+        }
+
        // checkAndSpawnMonsters()
 
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Stop heartbeat when activity is paused
+        heartbeatHandler.removeCallbacks(heartbeatRunnable)
     }
     
     //refresh for choosing the starting monster
@@ -240,6 +293,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
                         "GeoMon",
                         "Refreshed active player monster: id=$playerMonsterId index=$activeIndex"
                     )
+                    // Update the monster panel UI
+                    updateMonsterPanel()
                 } else {
                     Log.e("GeoMon", "No monsterIds found for user when refreshing player monster")
                 }
@@ -252,9 +307,20 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun updateMap(latLng: LatLng) {
         val cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, zoomValue)
         googleMap.animateCamera(cameraUpdate)
+
+        // Calculate direction based on movement
+        if (previousPlayerLatLng != null) {
+            calculateDirection(latLng)
+        }
+
+        // Remove old marker and add new one with updated direction icon
         playerMarker?.remove()
         playerMarkerOptions.position(latLng)
+        playerMarkerOptions.icon(getDirectionIcon())
         playerMarker = googleMap.addMarker(playerMarkerOptions)
+
+        // Update previous location for next direction calculation
+        previousPlayerLatLng = latLng
 
         // Update user location in Firebase for multiplayer
         AuthManager.userId?.let { userId ->
@@ -275,9 +341,16 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun displayOtherPlayers(playerLatLng: LatLng) {
         val currentUserId = AuthManager.userId ?: return
 
-        FirebaseManager.usersRef.addListenerForSingleValueEvent(object : ValueEventListener {
+        // Remove old listener if exists
+        otherPlayersListener?.let {
+            FirebaseManager.usersRef.removeEventListener(it)
+        }
+
+        // Create continuous listener for real-time updates
+        otherPlayersListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val activeThreshold = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes
+                val currentPlayerIds = mutableSetOf<String>()
 
                 for (child in snapshot.children) {
                     val userId = child.key ?: continue
@@ -289,38 +362,78 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
 
                     // Skip inactive users
                     if (user.lastActive < activeThreshold) {
-                        otherPlayerMarkers[userId]?.remove()
-                        otherPlayerMarkers.remove(userId)
                         continue
                     }
 
                     // Check if within visible radius
                     if (!isWithinRadius(playerLatLng, user.latitude, user.longitude)) {
-                        otherPlayerMarkers[userId]?.remove()
-                        otherPlayerMarkers.remove(userId)
                         continue
                     }
 
-                    // Update or create marker
-                    val existingMarker = otherPlayerMarkers[userId]
-                    if (existingMarker != null) {
-                        existingMarker.position = LatLng(user.latitude, user.longitude)
+                    currentPlayerIds.add(userId)
+
+                    val newLocation = LatLng(user.latitude, user.longitude)
+                    val previousLocation = otherPlayerLocations[userId]
+
+                    // Calculate direction based on movement
+                    val direction = calculateDirectionForPlayer(newLocation, previousLocation)
+
+                    // Update location and direction tracking
+                    otherPlayerLocations[userId] = newLocation
+                    otherPlayerDirections[userId] = direction
+
+                    // Load avatar if not cached
+                    if (user.avatarUrl.isNotBlank() && !otherPlayerAvatars.containsKey(userId)) {
+                        Glide.with(this@MainActivity)
+                            .asBitmap()
+                            .load(user.avatarUrl)
+                            .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                                override fun onResourceReady(
+                                    resource: Bitmap,
+                                    transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                                ) {
+                                    otherPlayerAvatars[userId] = resource
+                                    updateOtherPlayerMarker(userId, newLocation, direction, user.displayName, resource)
+                                }
+
+                                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
+                            })
                     } else {
-                        val marker = googleMap.addMarker(
-                            MarkerOptions()
-                                .position(LatLng(user.latitude, user.longitude))
-                                .title(user.displayName)
-                                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-                        )
-                        marker?.let { otherPlayerMarkers[userId] = it }
+                        // Update marker with cached avatar or no avatar
+                        updateOtherPlayerMarker(userId, newLocation, direction, user.displayName, otherPlayerAvatars[userId])
                     }
+                }
+
+                // Remove markers for players no longer visible
+                val playersToRemove = otherPlayerMarkers.keys.filter { !currentPlayerIds.contains(it) }
+                playersToRemove.forEach { userId ->
+                    otherPlayerMarkers[userId]?.remove()
+                    otherPlayerMarkers.remove(userId)
+                    otherPlayerLocations.remove(userId)
+                    otherPlayerDirections.remove(userId)
                 }
             }
 
             override fun onCancelled(error: DatabaseError) {
                 Log.e("GeoMon", "Failed to fetch other players: ${error.message}")
             }
-        })
+        }
+
+        FirebaseManager.usersRef.addValueEventListener(otherPlayersListener!!)
+    }
+
+    private fun updateOtherPlayerMarker(userId: String, location: LatLng, direction: String, displayName: String, avatarBitmap: Bitmap?) {
+        // Remove existing marker
+        otherPlayerMarkers[userId]?.remove()
+
+        // Create new marker with directional icon and avatar
+        val marker = googleMap.addMarker(
+            MarkerOptions()
+                .position(location)
+                .title(displayName)
+                .icon(getOtherPlayerDirectionIcon(direction, avatarBitmap))
+        )
+        marker?.let { otherPlayerMarkers[userId] = it }
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -329,7 +442,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         googleMap.mapType = GoogleMap.MAP_TYPE_NORMAL
         playerMarkerOptions = MarkerOptions()
             .title("You")
-            .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+            .icon(getDirectionIcon())
 
 
         /*
@@ -567,6 +680,156 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun dp(sizeDp: Int): Int =
         (sizeDp * resources.displayMetrics.density).roundToInt()
 
+    private fun getDirectionIcon(sizeDp: Int = 42): BitmapDescriptor {
+        val resName = currentPlayerDirection // "down", "up", "left", or "right"
+        val resId = resources.getIdentifier(resName, "drawable", packageName)
+
+        if (resId == 0) {
+            // Fallback to default marker if direction image not found
+            return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+        }
+
+        val drawable: Drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+
+        val w = dp(sizeDp)
+        val h = dp(sizeDp)
+
+        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        } else {
+            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            drawable.setBounds(0, 0, w, h)
+            drawable.draw(c)
+            b
+        }
+
+        // Overlay avatar if available
+        val finalBitmap = if (cachedPlayerAvatarBitmap != null) {
+            overlayAvatarOnMarker(bmp, cachedPlayerAvatarBitmap!!)
+        } else {
+            bmp
+        }
+
+        return BitmapDescriptorFactory.fromBitmap(finalBitmap)
+    }
+
+    private fun overlayAvatarOnMarker(markerBitmap: Bitmap, avatarBitmap: Bitmap): Bitmap {
+        // Create a mutable copy of the marker bitmap
+        val result = markerBitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(result)
+
+        val avatarSize = dp(58)
+        val scaledAvatar = Bitmap.createScaledBitmap(avatarBitmap, avatarSize, avatarSize, true)
+
+        // Create circular avatar
+        val circularAvatar = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888)
+        val avatarCanvas = Canvas(circularAvatar)
+        val paint = android.graphics.Paint()
+        paint.isAntiAlias = true
+
+        // Draw circle
+        avatarCanvas.drawCircle(
+            avatarSize / 2f,
+            avatarSize / 2f,
+            avatarSize / 2f,
+            paint
+        )
+
+        // Apply avatar using SRC_IN to clip to circle
+        paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
+        avatarCanvas.drawBitmap(scaledAvatar, 0f, 0f, paint)
+
+        // Draw white circle border (thicker for better visibility)
+        val borderPaint = android.graphics.Paint()
+        borderPaint.isAntiAlias = true
+        borderPaint.style = android.graphics.Paint.Style.STROKE
+        borderPaint.strokeWidth = dp(3).toFloat() // Increased from 2dp to 3dp
+        borderPaint.color = android.graphics.Color.WHITE
+        avatarCanvas.drawCircle(
+            avatarSize / 2f,
+            avatarSize / 2f,
+            avatarSize / 2f - dp(2).toFloat(),
+            borderPaint
+        )
+
+        // Position avatar at top-center of the marker
+        // Center horizontally and place at the very top
+        val x = dp(20).toFloat()//(result.width - avatarSize) / 2f
+        val y = dp(-3).toFloat()  // Right at the top
+
+        canvas.drawBitmap(circularAvatar, x, y, null)
+
+        return result
+    }
+
+    private fun calculateDirection(newLatLng: LatLng) {
+        val prev = previousPlayerLatLng ?: return
+
+        val latDiff = newLatLng.latitude - prev.latitude
+        val lngDiff = newLatLng.longitude - prev.longitude
+
+        // Determine primary direction based on larger difference
+        if (Math.abs(latDiff) > Math.abs(lngDiff)) {
+            // More vertical movement
+            currentPlayerDirection = if (latDiff > 0) "up" else "down"
+        } else {
+            // More horizontal movement
+            currentPlayerDirection = if (lngDiff > 0) "right" else "left"
+        }
+    }
+
+    private fun calculateDirectionForPlayer(newLatLng: LatLng, previousLatLng: LatLng?): String {
+        if (previousLatLng == null) return "down"
+
+        val latDiff = newLatLng.latitude - previousLatLng.latitude
+        val lngDiff = newLatLng.longitude - previousLatLng.longitude
+
+        // Determine primary direction based on larger difference
+        return if (Math.abs(latDiff) > Math.abs(lngDiff)) {
+            // More vertical movement
+            if (latDiff > 0) "up" else "down"
+        } else {
+            // More horizontal movement
+            if (lngDiff > 0) "right" else "left"
+        }
+    }
+
+    private fun getOtherPlayerDirectionIcon(direction: String, avatarBitmap: Bitmap?, sizeDp: Int = 42): BitmapDescriptor {
+        val resId = resources.getIdentifier(direction, "drawable", packageName)
+
+        if (resId == 0) {
+            // Fallback to default marker if direction image not found
+            return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+        }
+
+        val drawable: Drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
+
+        val w = dp(sizeDp)
+        val h = dp(sizeDp)
+
+        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        } else {
+            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            val c = Canvas(b)
+            drawable.setBounds(0, 0, w, h)
+            drawable.draw(c)
+            b
+        }
+
+        // Overlay avatar if available
+        val finalBitmap = if (avatarBitmap != null) {
+            overlayAvatarOnMarker(bmp, avatarBitmap)
+        } else {
+            bmp
+        }
+
+        return BitmapDescriptorFactory.fromBitmap(finalBitmap)
+    }
+
     private fun monsterIconByName(name: String, sizeDp: Int = 42): BitmapDescriptor {
         val resName = name.lowercase().replace(" ", "_")
         val resId = resources.getIdentifier(resName, "drawable", packageName)
@@ -692,6 +955,58 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
+    private fun refreshPlayerAvatar() {
+        val userId = AuthManager.userId ?: return
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val user = User.fetchById(userId) ?: return@launch
+
+            launch(Dispatchers.Main) {
+                if (user.avatarUrl.isNotBlank()) {
+                    // Load avatar for bottom panel
+                    Glide.with(this@MainActivity)
+                        .load(user.avatarUrl)
+                        .circleCrop()
+                        .into(binding.imgPlayer)
+
+                    // Load avatar bitmap for marker overlay
+                    Glide.with(this@MainActivity)
+                        .asBitmap()
+                        .load(user.avatarUrl)
+                        .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                resource: Bitmap,
+                                transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                            ) {
+                                cachedPlayerAvatarBitmap = resource
+                                // Update marker with new avatar
+                                updatePlayerMarkerWithAvatar()
+                            }
+
+                            override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
+                                // Handle cleanup if needed
+                            }
+                        })
+                } else {
+                    // Use default avatar
+                    binding.imgPlayer.setImageResource(android.R.drawable.sym_def_app_icon)
+                    cachedPlayerAvatarBitmap = null
+                }
+            }
+        }
+    }
+
+    private fun updatePlayerMarkerWithAvatar() {
+        // Update current marker with avatar overlay
+        val currentLatLng = trackingViewModel.latLng.value
+        if (currentLatLng != null && ::googleMap.isInitialized) {
+            playerMarker?.remove()
+            playerMarkerOptions.position(currentLatLng)
+            playerMarkerOptions.icon(getDirectionIcon())
+            playerMarker = googleMap.addMarker(playerMarkerOptions)
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -710,6 +1025,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onDestroy() {
         super.onDestroy()
         trackingViewModel.serviceStarted.value = false
+
+        // Remove Firebase listener
+        otherPlayersListener?.let {
+            FirebaseManager.usersRef.removeEventListener(it)
+        }
+
         /*
         unbindService(trackingViewModel)
         stopService(serviceIntent)
@@ -720,5 +1041,32 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
         }
         stopService(serviceIntent)
 
+    }
+
+    override fun onAvatarUpdated(avatarUrl: String) {
+        // Update bottom panel avatar when avatar changes
+        Glide.with(this)
+            .load(avatarUrl)
+            .circleCrop()
+            .into(binding.imgPlayer)
+
+        // Load avatar bitmap for marker overlay
+        Glide.with(this)
+            .asBitmap()
+            .load(avatarUrl)
+            .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                override fun onResourceReady(
+                    resource: Bitmap,
+                    transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                ) {
+                    cachedPlayerAvatarBitmap = resource
+                    // Update marker with new avatar
+                    updatePlayerMarkerWithAvatar()
+                }
+
+                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
+                    // Handle cleanup if needed
+                }
+            })
     }
 }

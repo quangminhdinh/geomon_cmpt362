@@ -366,9 +366,21 @@ class BattleActivity : ComponentActivity() {
     }
 
     private fun checkBattleEnd() {
+        if (player.isFainted || opponent.isFainted) {
+            btnRun.isEnabled = false
+            btnCapture.isEnabled = false
+            lifecycleScope.launch {
+                delay(1000)
+                finish()
+            }
+        }
         if (player.isFainted && opponent.isFainted) {
             appendLog("Both monsters fainted! It's a tie.")
             setMoveButtonsEnabled(false)
+            // Delete opponent if wild
+            if (opponent.isWild) {
+                FirebaseManager.monstersRef.child(opponent.id).removeValue()
+            }
         } else if (player.isFainted) {
             appendLog("${player.name} fainted! Defeat!")
             setMoveButtonsEnabled(false)
@@ -376,6 +388,11 @@ class BattleActivity : ComponentActivity() {
             appendLog("${opponent.name} fainted! Victory!")
             giveVictoryRewards()
             setMoveButtonsEnabled(false)
+            // Delete opponent if wild
+            if (opponent.isWild) {
+                FirebaseManager.monstersRef.child(opponent.id).removeValue()
+                Log.d("BattleActivity", "Defeated wild monster ${opponent.id} deleted from Firebase")
+            }
         }
 
     }
