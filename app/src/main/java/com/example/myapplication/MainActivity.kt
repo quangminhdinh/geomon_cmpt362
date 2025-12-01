@@ -55,10 +55,11 @@ import android.os.Handler
 import android.os.Looper
 import com.bumptech.glide.Glide
 import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
+import com.example.myapplication.ui.home.ChangeNameDialogFragment
 import com.example.myapplication.data.DuelRequest
 import com.example.myapplication.data.BattleState
 
-class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener, ChangeNameDialogFragment.OnNameUpdatedListener {
     private lateinit var binding: ActivityMainBinding
 
     private lateinit var googleMap: GoogleMap
@@ -1261,5 +1262,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
                 override fun onLoadCleared(placeholder: Drawable?) { }
             })
+    }
+
+    override fun onNameUpdated(newName: String) {
+        binding.playerNameOnPanel.text = newName
     }
 }
