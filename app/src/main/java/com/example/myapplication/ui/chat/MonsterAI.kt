@@ -8,9 +8,6 @@ import kotlinx.coroutines.withContext
 
 object MonsterAI {
 
-    /**
-     * Initialize the Gemini API with API key from manifest
-     */
     fun initialize(context: Context) {
         try {
             val apiKey = context.packageManager
@@ -31,9 +28,6 @@ object MonsterAI {
         }
     }
 
-    /**
-     * Generate chat response from monster
-     */
     suspend fun getChatResponse(
         monsterName: String,
         monsterType: String?,

@@ -47,7 +47,6 @@ class HealTargetActivity : AppCompatActivity() {
         loadDamagedMonsters()
     }
 
-    // Sorts Only monsters with low hp
     private fun loadDamagedMonsters() {
         val userId = AuthManager.userId
         if (userId == null) {
@@ -77,7 +76,7 @@ class HealTargetActivity : AppCompatActivity() {
             }
         }
     }
-//Tapping a monster results in the item consumed, monster healed firebase sync
+
     private fun onMonsterClicked(monster: Monster) {
         val userId = AuthManager.userId
         if (userId == null) {

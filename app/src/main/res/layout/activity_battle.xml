@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:padding="12dp">
 
-    <!-- Run button  -->
     <Button
         android:id="@+id/btnRun"
         android:layout_width="90dp"
@@ -16,7 +15,6 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Capture button  -->
     <Button
         android:id="@+id/btnCapture"
         android:layout_width="90dp"
@@ -26,7 +24,6 @@
         app:layout_constraintTop_toBottomOf="@id/btnRun"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Turn counter -->
     <TextView
         android:id="@+id/tvTurn"
         android:layout_width="wrap_content"
@@ -38,7 +35,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Opponent name -->
     <TextView
         android:id="@+id/tvOpponentName"
         android:layout_width="wrap_content"
@@ -51,7 +47,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="8dp" />
 
-    <!-- Opponent HP -->
     <ProgressBar
         android:id="@+id/hpOpponent"
         style="?android:attr/progressBarStyleHorizontal"
@@ -63,7 +58,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Opponent sprite placeholder -->
     <ImageView
         android:id="@+id/imgOpponent"
         android:layout_width="180dp"
@@ -73,7 +67,6 @@
         app:layout_constraintTop_toBottomOf="@id/hpOpponent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Announcement text -->
     <TextView
         android:id="@+id/tvAnnouncement"
         android:layout_width="0dp"
@@ -89,8 +82,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-
-    <!-- Player sprite -->
     <ImageView
         android:id="@+id/imgPlayer"
         android:layout_width="180dp"
@@ -101,7 +92,6 @@
         app:layout_constraintBottom_toTopOf="@id/moveButtons"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Player name -->
     <TextView
         android:id="@+id/tvPlayerName"
         android:layout_width="wrap_content"
@@ -113,7 +103,6 @@
         app:layout_constraintStart_toEndOf="@id/imgPlayer"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Player HP -->
     <ProgressBar
         android:id="@+id/hpPlayer"
         style="?android:attr/progressBarStyleHorizontal"
@@ -125,7 +114,6 @@
         app:layout_constraintStart_toEndOf="@id/imgPlayer"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Move buttons grid -->
     <LinearLayout
         android:id="@+id/moveButtons"
         android:layout_width="0dp"
@@ -164,7 +152,6 @@
                     android:gravity="center"
                     android:textStyle="bold" />
 
-
                 <TextView
                     android:id="@+id/moveLeftTextType1"
                     android:layout_width="match_parent"
@@ -173,10 +160,7 @@
                     android:gravity="center"
                     android:textColor="#FFFFFF"
                     android:textSize="12sp" />
-
             </LinearLayout>
-
-
 
             <LinearLayout
                 android:id="@+id/btnMove2"
@@ -288,7 +272,6 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- RecyclerView for battle log (hidden/not used but BattleActivity references it) -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/logList"
         android:layout_width="0dp"

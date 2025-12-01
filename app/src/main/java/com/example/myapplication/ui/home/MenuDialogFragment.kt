@@ -76,7 +76,6 @@ class MenuDialogFragment : DialogFragment() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Fetch user to get first monster ID
                 val user = User.fetchById(userId)
                 val firstMonsterId = user?.firstMonsterId
 
@@ -87,7 +86,6 @@ class MenuDialogFragment : DialogFragment() {
                     return@launch
                 }
 
-                // Open chat dialog on main thread
                 withContext(Dispatchers.Main) {
                     dismiss()
                     val chatDialog = MonsterChatDialogFragment.newInstance(firstMonsterId)

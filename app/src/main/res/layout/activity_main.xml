@@ -21,15 +21,15 @@
         android:id="@+id/btnMenu"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="30dp"
         android:contentDescription="Menu"
         android:src="@android:drawable/ic_menu_more"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:backgroundTint="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
         app:tint="@android:color/black" />
 
-    <!-- Bottom bar -->
     <LinearLayout
         android:id="@+id/bottom_bar"
         android:layout_width="0dp"
@@ -43,7 +43,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- Left: tap to open Player Stats -->
         <LinearLayout
             android:id="@+id/player_panel"
             android:layout_width="0dp"
@@ -61,6 +60,7 @@
                 android:contentDescription="player"
                 android:scaleType="centerCrop"/>
             <TextView
+                android:id="@+id/playerNameOnPanel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
@@ -69,7 +69,6 @@
                 android:textSize="14sp"/>
         </LinearLayout>
 
-        <!-- Middle: Inventory (Bag) -->
         <LinearLayout
             android:id="@+id/inventory_panel"
             android:layout_width="0dp"
@@ -89,7 +88,6 @@
                 app:tint="@null" />
         </LinearLayout>
 
-        <!-- Right: default monster quick info -->
         <LinearLayout
             android:id="@+id/monster_panel"
             android:layout_width="0dp"
@@ -124,6 +122,5 @@
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

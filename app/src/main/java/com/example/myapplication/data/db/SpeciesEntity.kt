@@ -1,10 +1,8 @@
-// SpeciesEntity.kt
 package com.example.myapplication.data.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-// Monsters stats for database
 @Entity(tableName = "species")
 data class SpeciesEntity(
     @PrimaryKey val id: String,

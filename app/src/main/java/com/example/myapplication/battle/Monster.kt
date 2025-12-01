@@ -94,7 +94,6 @@ class Monster(
             return monster
         }
 
-        // initializer a monster with the attributes from the appdatabase
         suspend fun initializeByName(
             context: Context,
             name: String,
@@ -109,7 +108,6 @@ class Monster(
 
             if (tempSpecies == null) {
                 Log.e("Monster", "Species not found in database: ${name.lowercase()}")
-                // Still upload to Firebase even for default monster
                 val monsterRef = FirebaseManager.monstersRef.push()
                 val monsterId = monsterRef.key ?: ""
                 val defaultMonster = createDefault(name, monsterId, latitude, longitude)
@@ -120,7 +118,6 @@ class Monster(
 
             val species = tempSpecies
 
-            // Get MoveEntities with names
             val move1Entity: MoveEntity? = species.move1Id?.let { dao.getMoveByIdNow(it) }
             val move2Entity: MoveEntity? = species.move2Id?.let { dao.getMoveByIdNow(it) }
             val move3Entity: MoveEntity? = species.move3Id?.let { dao.getMoveByIdNow(it) }
@@ -174,7 +171,6 @@ class Monster(
 
         fun fromSnapshot(snapshot: DataSnapshot): Monster? {
             return try {
-                //  Now it reads String move names from Firebase
                 val move1Name = snapshot.child("move1").getValue(String::class.java)
                 val move2Name = snapshot.child("move2").getValue(String::class.java)
                 val move3Name = snapshot.child("move3").getValue(String::class.java)
@@ -276,7 +272,6 @@ class Monster(
                 }
         }
 
-        // prevents errors when a monster backs up improperly
         private fun createDefault(
             name: String = "DefaultMon",
             id: String = "",
@@ -322,7 +317,6 @@ class Monster(
         }
         syncHpToFirebase()
     }
-    //public method for leveling up a monster by scaling
      fun levelUp(amount: Int) {
         level += amount
         levelScaling(this)
@@ -343,21 +337,20 @@ class Monster(
                 Log.e("Monster", "Failed to sync HP for monster $id: ${e.message}")
             }
     }
-    // heal health, called by healing moves and bag items
     fun healDamage(amount: Float) {
-        if (isFainted) {
-            return
-        }
+//        if (isFainted) {
+//            return
+//        }
         currentHp += amount
         if (currentHp > maxHp) {
             currentHp = maxHp
         }
+        isFainted = false
 
 
         syncHpToFirebase()
     }
     fun isAlive(): Boolean = !isFainted
-    // damage/heal/toMap unchanged except for moves part:
     fun toMap(): Map<String, Any?> {
         return mapOf(
             "name" to name,

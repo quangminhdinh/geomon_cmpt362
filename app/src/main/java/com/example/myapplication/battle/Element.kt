@@ -1,8 +1,6 @@
 package com.example.myapplication.battle
 
 
-// Element enum and String conversion
-
 enum class Element {
     NORMAL, FIRE, WATER, GRASS, ELECTRIC, ICE, FIGHTING, POISON,
     GROUND, FLYING, PSYCHIC, BUG, ROCK, GHOST, DRAGON, DARK, STEEL, FAIRY;
@@ -24,7 +22,6 @@ enum class Element {
 }
 
 
-// Type Chart Match Ups based off "Pokemon". We can add new types or change it
 // 0 is no effect
 // 0.5 is not very effective
 // 1 is normal
@@ -184,7 +181,6 @@ object TypeChart {
     )
 
 
-    // Returns combined multiplier for all defender types
     fun multiplier(attackType: Element?, defenderTypes: List<Element?>): Double {
         if (attackType == null){
             return 1.0
@@ -197,7 +193,7 @@ object TypeChart {
                 acc * m
             }
     }
-// use to displayer UI
+
     fun effectivenessCategory(attackType: Element?, defenderTypes: List<Element?>): Effectiveness {
         val m = multiplier(attackType, defenderTypes)
         return when {
@@ -210,8 +206,6 @@ object TypeChart {
 
 }
 
-
-// Effectiveness Enum
 
 enum class Effectiveness {
     SUPER_EFFECTIVE,

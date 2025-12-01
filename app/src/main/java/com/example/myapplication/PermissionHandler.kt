@@ -17,9 +17,6 @@ class PermissionHandler(private val activity: Activity) {
         )
     }
 
-    /**
-     * Check if all required permissions are granted
-     */
     fun hasLocationPermissions(): Boolean {
         return REQUIRED_PERMISSIONS.all { permission ->
             ContextCompat.checkSelfPermission(
@@ -29,9 +26,6 @@ class PermissionHandler(private val activity: Activity) {
         }
     }
 
-    /**
-     * Request location permissions
-     */
     fun requestLocationPermissions() {
         ActivityCompat.requestPermissions(
             activity,
@@ -40,10 +34,6 @@ class PermissionHandler(private val activity: Activity) {
         )
     }
 
-    /**
-     * Check and request permissions if needed
-     * Returns true if permissions already granted
-     */
     fun checkAndRequestPermissions(): Boolean {
         return if (hasLocationPermissions()) {
             true
@@ -53,10 +43,6 @@ class PermissionHandler(private val activity: Activity) {
         }
     }
 
-    /**
-     * Handle the permission request result
-     * Call this from your Activity's onRequestPermissionsResult
-     */
     fun handlePermissionResult(
         requestCode: Int,
         permissions: Array<out String>,

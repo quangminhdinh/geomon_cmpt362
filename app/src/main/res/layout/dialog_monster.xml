@@ -6,7 +6,6 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- mon image -->
     <ImageView
         android:id="@+id/imgMonster"
         android:layout_width="120dp"
@@ -15,7 +14,6 @@
         android:src="@android:drawable/ic_menu_gallery"
         android:contentDescription="monster image" />
 
-    <!-- mon name -->
     <TextView
         android:id="@+id/tvMonsterName"
         android:layout_width="wrap_content"
@@ -26,7 +24,6 @@
         android:textSize="18sp"
         android:textStyle="bold" />
 
-    <!-- mon level -->
     <TextView
         android:id="@+id/tvMonsterLevel"
         android:layout_width="wrap_content"
@@ -35,7 +32,6 @@
         android:text="Lv. 5"
         android:layout_marginTop="4dp" />
 
-    <!-- buttons row: left fight, right cancel -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

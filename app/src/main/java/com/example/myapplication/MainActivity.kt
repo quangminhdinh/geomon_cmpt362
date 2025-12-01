@@ -37,8 +37,6 @@ import kotlin.random.Random
 import com.example.myapplication.data.AuthManager
 import com.example.myapplication.data.User
 import kotlinx.coroutines.withContext
-import android.view.LayoutInflater
-import android.view.View
 import android.widget.TextView
 import android.widget.ImageView
 import android.widget.Button
@@ -57,8 +55,8 @@ import android.os.Handler
 import android.os.Looper
 import com.bumptech.glide.Glide
 import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
-class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
 
+class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
     private lateinit var binding: ActivityMainBinding
 
     private lateinit var googleMap: GoogleMap
@@ -77,18 +75,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private val monsterMarkers = mutableListOf<Marker>()
     private val itemMarkers = mutableListOf<Marker>()
     private val otherPlayerMarkers = mutableMapOf<String, Marker>()
-    private val otherPlayerLocations = mutableMapOf<String, LatLng>() // Track last known positions
-    private val otherPlayerDirections = mutableMapOf<String, String>() // Track each player's direction
-    private val otherPlayerAvatars = mutableMapOf<String, Bitmap>() // Cache other players' avatars
+    private val otherPlayerLocations = mutableMapOf<String, LatLng>()
+    private val otherPlayerDirections = mutableMapOf<String, String>()
+    private val otherPlayerAvatars = mutableMapOf<String, Bitmap>()
     private var otherPlayersListener: ValueEventListener? = null
-    private val nearbyRadius = 0.01 // ~1km radius
-    private val monsterThreshold = 10 // minimum monsters in area
+    private val nearbyRadius = 0.01
+    private val monsterThreshold = 10
     private var playerMonsterId: String? = null
     private lateinit var permissionHandler: PermissionHandler
     private var isServiceBound = false
 
     private val heartbeatHandler = Handler(Looper.getMainLooper())
-    private val heartbeatInterval = 30000L // 30 seconds
+    private val heartbeatInterval = 30000L
     private val heartbeatRunnable = object : Runnable {
         override fun run() {
             AuthManager.userId?.let { userId ->
@@ -115,17 +113,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         }
 
         binding.btnInventory.setOnClickListener {
-            startActivity(Intent(this, com.example.myapplication.ui.pokedex.PokedexActivity::class.java))
+            startActivity(Intent(this, com.example.myapplication.ui.bag.BagActivity::class.java))
         }
 
 
-        // Initialize database and repository
         val db = AppDatabase.get(this)
         repository = SpeciesRepository(db.speciesDao())
 
-        // Sign in and initialize player data
         lifecycleScope.launch(Dispatchers.IO) {
-            // Sign in anonymously
             Log.d("GeoMon", "Signing in...")
             val firebaseUser = AuthManager.signInAnonymously()
             if (firebaseUser == null) {
@@ -135,22 +130,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             val userId = firebaseUser.uid
             Log.d("GeoMon", "Signed in as: $userId")
 
-            // Seed database
             Log.d("GeoMon", "Starting seeder")
             Seeder.run(this@MainActivity, repository)
             Log.d("GeoMon", "Database transferred")
 
-            // Load available species IDs (use first() since Room Flows never complete)
             Log.d("GeoMon", "Starting to load species")
             val speciesList = repository.allSpecies().first()
             availableSpeciesIds = speciesList.map { it.id }
             Log.d("GeoMon", "Loaded ${availableSpeciesIds.size} species")
 
-            // Check if user exists in Firebase
             val user = User.fetchById(userId)
 
             if (user == null || user.monsterIds.isEmpty()) {
-                // Create new player monster
                 Log.d("GeoMon", "Creating player monster for user: $userId")
                 val playerMonster = Monster.initializeByName(
                     context = this@MainActivity,
@@ -165,7 +156,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     refreshPlayerAvatar()
                 }
 
-                // Create or update user with player monster ID
                 User.createOrUpdate(
                     userId = userId,
                     displayName = "Player",
@@ -173,7 +163,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                 )
                 Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
             } else {
-                // Verify the first monster still exists in Firebase
                 val firstMonsterId = user.firstMonsterId
                 val index = user.activeMonsterIndex
                 Log.d("GeoMon", "User exists, verifying first monster: $index")
@@ -205,17 +194,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             }
         }
 
-        // Initialize permission handler
         permissionHandler = PermissionHandler(this)
 
-        // Initialize map
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
         serviceIntent = Intent(this, TrackingService::class.java)
         trackingViewModel = ViewModelProvider(this).get(TrackingViewModel::class.java)
 
         mapFragment?.getMapAsync(this)
 
-        // Setup menu button
         binding.btnMenu.setOnClickListener {
             MenuDialogFragment().show(supportFragmentManager, MenuDialogFragment.TAG)
         }
@@ -242,16 +228,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
     override fun onResume() {
         super.onResume()
-        // When coming back from MonsterInfoActivity, refresh active monster
         refreshPlayerMonsterFromUser()
 
-        // Refresh player avatar in bottom panel
         refreshPlayerAvatar()
 
-        // Start heartbeat to keep user active
         heartbeatHandler.post(heartbeatRunnable)
 
-        // Refresh monsters on map (in case any were defeated/captured in battle)
         if (::googleMap.isInitialized) {
             val currentLatLng = trackingViewModel.latLng.value
             if (currentLatLng != null) {
@@ -266,11 +248,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
     override fun onPause() {
         super.onPause()
-        // Stop heartbeat when activity is paused
         heartbeatHandler.removeCallbacks(heartbeatRunnable)
     }
     
-    //refresh for choosing the starting monster
     private fun refreshPlayerMonsterFromUser() {
         val userId = AuthManager.userId ?: return
 
@@ -293,7 +273,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                         "GeoMon",
                         "Refreshed active player monster: id=$playerMonsterId index=$activeIndex"
                     )
-                    // Update the monster panel UI
                     updateMonsterPanel()
                 } else {
                     Log.e("GeoMon", "No monsterIds found for user when refreshing player monster")
@@ -308,32 +287,23 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, zoomValue)
         googleMap.animateCamera(cameraUpdate)
 
-        // Calculate direction based on movement
         if (previousPlayerLatLng != null) {
             calculateDirection(latLng)
         }
 
-        // Remove old marker and add new one with updated direction icon
         playerMarker?.remove()
         playerMarkerOptions.position(latLng)
         playerMarkerOptions.icon(getDirectionIcon())
         playerMarker = googleMap.addMarker(playerMarkerOptions)
 
-        // Update previous location for next direction calculation
         previousPlayerLatLng = latLng
 
-        // Update user location in Firebase for multiplayer
         AuthManager.userId?.let { userId ->
             User.updateLocation(userId, latLng.latitude, latLng.longitude)
         }
 
-        // Check and spawn monsters around player
         checkAndSpawnMonsters()
-
-        // ✅ NEW: spawn items around player
         checkAndSpawnItems()
-
-        // Show other players on the map
         displayOtherPlayers(latLng)
     }
 
@@ -341,12 +311,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private fun displayOtherPlayers(playerLatLng: LatLng) {
         val currentUserId = AuthManager.userId ?: return
 
-        // Remove old listener if exists
         otherPlayersListener?.let {
             FirebaseManager.usersRef.removeEventListener(it)
         }
 
-        // Create continuous listener for real-time updates
         otherPlayersListener = object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 val activeThreshold = System.currentTimeMillis() - 5 * 60 * 1000 // 5 minutes
@@ -354,35 +322,26 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
                 for (child in snapshot.children) {
                     val userId = child.key ?: continue
-
-                    // Skip current user
                     if (userId == currentUserId) continue
-
                     val user = User.fromSnapshot(child) ?: continue
 
-                    // Skip inactive users
                     if (user.lastActive < activeThreshold) {
                         continue
                     }
 
-                    // Check if within visible radius
                     if (!isWithinRadius(playerLatLng, user.latitude, user.longitude)) {
                         continue
                     }
 
                     currentPlayerIds.add(userId)
-
                     val newLocation = LatLng(user.latitude, user.longitude)
                     val previousLocation = otherPlayerLocations[userId]
 
-                    // Calculate direction based on movement
                     val direction = calculateDirectionForPlayer(newLocation, previousLocation)
 
-                    // Update location and direction tracking
                     otherPlayerLocations[userId] = newLocation
                     otherPlayerDirections[userId] = direction
 
-                    // Load avatar if not cached
                     if (user.avatarUrl.isNotBlank() && !otherPlayerAvatars.containsKey(userId)) {
                         Glide.with(this@MainActivity)
                             .asBitmap()
@@ -399,12 +358,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                                 override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {}
                             })
                     } else {
-                        // Update marker with cached avatar or no avatar
                         updateOtherPlayerMarker(userId, newLocation, direction, user.displayName, otherPlayerAvatars[userId])
                     }
                 }
 
-                // Remove markers for players no longer visible
                 val playersToRemove = otherPlayerMarkers.keys.filter { !currentPlayerIds.contains(it) }
                 playersToRemove.forEach { userId ->
                     otherPlayerMarkers[userId]?.remove()
@@ -423,10 +380,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     }
 
     private fun updateOtherPlayerMarker(userId: String, location: LatLng, direction: String, displayName: String, avatarBitmap: Bitmap?) {
-        // Remove existing marker
         otherPlayerMarkers[userId]?.remove()
 
-        // Create new marker with directional icon and avatar
         val marker = googleMap.addMarker(
             MarkerOptions()
                 .position(location)
@@ -471,7 +426,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                 false
             }
         } */
-        //On click, if player's starting monster is 0 hp, toast a message. If player's starting monster has hp, open a menu.
         googleMap.setOnMarkerClickListener { marker ->
             when (val tag = marker.tag) {
 
@@ -571,9 +525,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             }
         }
 
-
-
-        // Check permissions before starting tracking service
         if (permissionHandler.checkAndRequestPermissions()) {
             initTrackingService()
         }
@@ -592,7 +543,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
 
                     if (isWithinRadius(playerLatLng, lat, lng)) {
                         val monster = Monster.fromSnapshot(child)
-                        // Only include wild monsters (no owner)
                         if (monster != null && monster.isWild) {
                             nearbyMonsters.add(monster)
                         }
@@ -632,7 +582,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     val lng = child.child("longitude").getValue(Double::class.java) ?: continue
                     if (isWithinRadius(playerLatLng, lat, lng)) {
                         val monster = Monster.fromSnapshot(child)
-                        // Only include wild monsters (no owner)
                         if (monster != null && monster.isWild) {
                             nearbyMonsters.add(monster)
                         }
@@ -685,7 +634,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val resId = resources.getIdentifier(resName, "drawable", packageName)
 
         if (resId == 0) {
-            // Fallback to default marker if direction image not found
             return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
         }
 
@@ -705,7 +653,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             b
         }
 
-        // Overlay avatar if available
         val finalBitmap = if (cachedPlayerAvatarBitmap != null) {
             overlayAvatarOnMarker(bmp, cachedPlayerAvatarBitmap!!)
         } else {
@@ -716,20 +663,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     }
 
     private fun overlayAvatarOnMarker(markerBitmap: Bitmap, avatarBitmap: Bitmap): Bitmap {
-        // Create a mutable copy of the marker bitmap
         val result = markerBitmap.copy(Bitmap.Config.ARGB_8888, true)
         val canvas = Canvas(result)
 
         val avatarSize = dp(58)
         val scaledAvatar = Bitmap.createScaledBitmap(avatarBitmap, avatarSize, avatarSize, true)
 
-        // Create circular avatar
         val circularAvatar = Bitmap.createBitmap(avatarSize, avatarSize, Bitmap.Config.ARGB_8888)
         val avatarCanvas = Canvas(circularAvatar)
         val paint = android.graphics.Paint()
         paint.isAntiAlias = true
 
-        // Draw circle
         avatarCanvas.drawCircle(
             avatarSize / 2f,
             avatarSize / 2f,
@@ -737,11 +681,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             paint
         )
 
-        // Apply avatar using SRC_IN to clip to circle
         paint.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_IN)
         avatarCanvas.drawBitmap(scaledAvatar, 0f, 0f, paint)
 
-        // Draw white circle border (thicker for better visibility)
         val borderPaint = android.graphics.Paint()
         borderPaint.isAntiAlias = true
         borderPaint.style = android.graphics.Paint.Style.STROKE
@@ -754,10 +696,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             borderPaint
         )
 
-        // Position avatar at top-center of the marker
-        // Center horizontally and place at the very top
         val x = dp(20).toFloat()//(result.width - avatarSize) / 2f
-        val y = dp(-3).toFloat()  // Right at the top
+        val y = dp(-3).toFloat()
 
         canvas.drawBitmap(circularAvatar, x, y, null)
 
@@ -770,12 +710,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val latDiff = newLatLng.latitude - prev.latitude
         val lngDiff = newLatLng.longitude - prev.longitude
 
-        // Determine primary direction based on larger difference
         if (Math.abs(latDiff) > Math.abs(lngDiff)) {
-            // More vertical movement
             currentPlayerDirection = if (latDiff > 0) "up" else "down"
         } else {
-            // More horizontal movement
             currentPlayerDirection = if (lngDiff > 0) "right" else "left"
         }
     }
@@ -786,12 +723,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val latDiff = newLatLng.latitude - previousLatLng.latitude
         val lngDiff = newLatLng.longitude - previousLatLng.longitude
 
-        // Determine primary direction based on larger difference
         return if (Math.abs(latDiff) > Math.abs(lngDiff)) {
-            // More vertical movement
             if (latDiff > 0) "up" else "down"
         } else {
-            // More horizontal movement
             if (lngDiff > 0) "right" else "left"
         }
     }
@@ -800,7 +734,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val resId = resources.getIdentifier(direction, "drawable", packageName)
 
         if (resId == 0) {
-            // Fallback to default marker if direction image not found
             return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)
         }
 
@@ -820,7 +753,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             b
         }
 
-        // Overlay avatar if available
         val finalBitmap = if (avatarBitmap != null) {
             overlayAvatarOnMarker(bmp, avatarBitmap)
         } else {
@@ -855,7 +787,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private fun checkAndSpawnItems() {
         val playerLatLng = trackingViewModel.latLng.value ?: return
 
-        // Generate items locally around the player using ItemSpawner
         val items = ItemSpawner.generateItemsAround(playerLatLng)
         Log.d("GeoMon", "Generated ${items.size} items around player")
         displayItemsOnMap(items)
@@ -893,7 +824,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val resId = resources.getIdentifier(resName, "drawable", packageName)
 
         if (resId == 0) {
-            // fallback: green marker for items
             return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
         }
 
@@ -936,12 +866,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         Log.d("GeoMon", "Displayed ${monsters.size} monsters on map")
     }
 
-
-
     private fun updateMonsterPanel() {
         lifecycleScope.launch(Dispatchers.IO) {
             val id = playerMonsterId ?: return@launch
-            val mon = com.example.myapplication.battle.Monster.fetchById(id) ?: return@launch
+            val mon = Monster.fetchById(id) ?: return@launch
             launch(Dispatchers.Main) {
                 binding.tvMonsterName.text  = mon.name
                 binding.tvMonsterLevel.text = "Lv. ${mon.level}"
@@ -950,6 +878,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     "drawable",
                     packageName
                 )
+                binding.monsterPanel.setOnClickListener {
+                    startActivity(Intent(this@MainActivity, com.example.myapplication.ui.pokedex.PokedexActivity::class.java))
+                }
                 if (resId != 0) binding.imgMonster.setImageResource(resId)
             }
         }
@@ -962,14 +893,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             val user = User.fetchById(userId) ?: return@launch
 
             launch(Dispatchers.Main) {
+                binding.playerNameOnPanel.text = user.displayName
                 if (user.avatarUrl.isNotBlank()) {
-                    // Load avatar for bottom panel
                     Glide.with(this@MainActivity)
                         .load(user.avatarUrl)
                         .circleCrop()
                         .into(binding.imgPlayer)
 
-                    // Load avatar bitmap for marker overlay
                     Glide.with(this@MainActivity)
                         .asBitmap()
                         .load(user.avatarUrl)
@@ -979,16 +909,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                                 transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
                             ) {
                                 cachedPlayerAvatarBitmap = resource
-                                // Update marker with new avatar
                                 updatePlayerMarkerWithAvatar()
                             }
 
-                            override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
-                                // Handle cleanup if needed
+                            override fun onLoadCleared(placeholder: Drawable?) {
                             }
                         })
                 } else {
-                    // Use default avatar
                     binding.imgPlayer.setImageResource(android.R.drawable.sym_def_app_icon)
                     cachedPlayerAvatarBitmap = null
                 }
@@ -997,7 +924,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     }
 
     private fun updatePlayerMarkerWithAvatar() {
-        // Update current marker with avatar overlay
         val currentLatLng = trackingViewModel.latLng.value
         if (currentLatLng != null && ::googleMap.isInitialized) {
             playerMarker?.remove()
@@ -1026,7 +952,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         super.onDestroy()
         trackingViewModel.serviceStarted.value = false
 
-        // Remove Firebase listener
         otherPlayersListener?.let {
             FirebaseManager.usersRef.removeEventListener(it)
         }
@@ -1044,13 +969,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     }
 
     override fun onAvatarUpdated(avatarUrl: String) {
-        // Update bottom panel avatar when avatar changes
         Glide.with(this)
             .load(avatarUrl)
             .circleCrop()
             .into(binding.imgPlayer)
 
-        // Load avatar bitmap for marker overlay
         Glide.with(this)
             .asBitmap()
             .load(avatarUrl)
@@ -1060,13 +983,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
                 ) {
                     cachedPlayerAvatarBitmap = resource
-                    // Update marker with new avatar
                     updatePlayerMarkerWithAvatar()
                 }
 
-                override fun onLoadCleared(placeholder: android.graphics.drawable.Drawable?) {
-                    // Handle cleanup if needed
-                }
+                override fun onLoadCleared(placeholder: Drawable?) { }
             })
     }
 }

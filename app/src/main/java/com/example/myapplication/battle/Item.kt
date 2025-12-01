@@ -3,7 +3,6 @@ package com.example.myapplication.items
 import android.content.Context
 import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.ItemEntity
-//item object. contains more variables for future implementations
 class Item(
     val id: String,
     val displayName: String,
@@ -17,7 +16,6 @@ class Item(
 
     companion object {
 
-        //  By the displayname, load from room
         suspend fun searchByDisplayName(context: Context, displayName: String): Item? {
             val db = AppDatabase.get(context)
             val dao = db.speciesDao()
@@ -37,7 +35,6 @@ class Item(
         )
     }
 
-    //depending on the effect conversion
     fun returnAffect(): Int? {
         return when (effect) {
             "healing" -> healing

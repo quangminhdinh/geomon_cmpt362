@@ -24,7 +24,6 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCw0pql8Ur6ToenD5P6SzPRsyELyz4QtA4" />
 
-        <!-- MainActivity is now the launcher with navigation drawer -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -40,13 +39,11 @@
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
 
-        <!-- BattleActivity for battles -->
         <activity
             android:name=".battle.ui.BattleActivity"
             android:exported="false"
             android:theme="@style/Theme.AppCompat.Light" />
 
-        <!-- PokedexActivity for viewing captured monsters -->
         <activity
             android:name=".ui.pokedex.PokedexActivity"
             android:exported="false"
@@ -56,7 +53,6 @@
         <activity android:name=".ui.bag.HealTargetActivity" />
         <activity android:name=".ui.bag.AllTargetActivity" />
 
-        <!-- TrackingService for location updates -->
         <service
             android:name=".services.tracking.TrackingService"
             android:exported="false" />

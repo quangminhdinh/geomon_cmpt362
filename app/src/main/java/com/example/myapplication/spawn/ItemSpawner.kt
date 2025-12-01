@@ -2,7 +2,7 @@ package com.example.myapplication.spawn
 
 import com.google.android.gms.maps.model.LatLng
 import kotlin.random.Random
-// Spawns Items around the map through random chance
+
 object ItemSpawner {
 
     private const val gridSize = 0.002

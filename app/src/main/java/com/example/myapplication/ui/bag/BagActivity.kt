@@ -44,7 +44,7 @@ class BagActivity : AppCompatActivity() {
 
         loadUserBag()
     }
-    //loads the users bag for to display the items in bag
+
     private fun loadUserBag() {
         val userId = AuthManager.userId
         if (userId == null) {
@@ -70,7 +70,7 @@ class BagActivity : AppCompatActivity() {
             }
         }
     }
-    // When clicking an item, this causes the item to output its effect such as healing
+
     private fun onItemClicked(bagItem: BagItem) {
         lifecycleScope.launch(Dispatchers.IO) {
             val item = Item.searchByDisplayName(this@BagActivity, bagItem.displayName)
@@ -89,7 +89,6 @@ class BagActivity : AppCompatActivity() {
         }
     }
 
-    // Opens a Bag
     private suspend fun openHealTargetSelection(item: Item) {
         withContext(Dispatchers.Main) {
             val intent = Intent(this@BagActivity, HealTargetActivity::class.java)

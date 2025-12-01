@@ -59,7 +59,6 @@ class ChangeAvatarDialogFragment : DialogFragment() {
         btnUpload = view.findViewById(R.id.btnUpload)
         btnCancel = view.findViewById(R.id.btnCancel)
 
-        // Load current avatar
         loadCurrentAvatar()
 
         btnSelectImage.setOnClickListener {
@@ -101,22 +100,18 @@ class ChangeAvatarDialogFragment : DialogFragment() {
                 btnSelectImage.isEnabled = false
                 Toast.makeText(requireContext(), "Uploading avatar...", Toast.LENGTH_SHORT).show()
 
-                // Upload to Firebase Storage
                 val storageRef = FirebaseStorage.getInstance().reference
                 val avatarRef = storageRef.child("avatars/$userId.jpg")
 
                 avatarRef.putFile(uri).await()
                 val downloadUrl = avatarRef.downloadUrl.await()
 
-                // Update user's avatar URL in database
                 User.updateAvatarUrl(userId, downloadUrl.toString())
 
                 Toast.makeText(requireContext(), "Avatar updated successfully!", Toast.LENGTH_SHORT).show()
 
-                // Notify parent fragment to refresh (PlayerStatsDialog)
                 (parentFragment as? OnAvatarUpdatedListener)?.onAvatarUpdated(downloadUrl.toString())
 
-                // Notify activity to refresh (MainActivity bottom panel)
                 (activity as? OnAvatarUpdatedListener)?.onAvatarUpdated(downloadUrl.toString())
 
                 dismiss()

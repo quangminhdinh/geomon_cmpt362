@@ -71,7 +71,6 @@ class PlayerStatsDialogFragment : DialogFragment(), ChangeAvatarDialogFragment.O
     }
 
     override fun onAvatarUpdated(avatarUrl: String) {
-        // Update avatar immediately when upload completes
         Glide.with(this)
             .load(avatarUrl)
             .circleCrop()
