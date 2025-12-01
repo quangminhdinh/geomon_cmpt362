@@ -55,6 +55,8 @@ import android.os.Handler
 import android.os.Looper
 import com.bumptech.glide.Glide
 import com.example.myapplication.ui.home.ChangeAvatarDialogFragment
+import com.example.myapplication.data.DuelRequest
+import com.example.myapplication.data.BattleState
 
 class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialogFragment.OnAvatarUpdatedListener {
     private lateinit var binding: ActivityMainBinding
@@ -79,6 +81,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     private val otherPlayerDirections = mutableMapOf<String, String>()
     private val otherPlayerAvatars = mutableMapOf<String, Bitmap>()
     private var otherPlayersListener: ValueEventListener? = null
+    private var duelRequestListener: ValueEventListener? = null
     private val nearbyRadius = 0.01
     private val monsterThreshold = 10
     private var playerMonsterId: String? = null
@@ -242,6 +245,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
             }
         }
 
+        setupDuelRequestListener()
+
        // checkAndSpawnMonsters()
 
     }
@@ -249,6 +254,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     override fun onPause() {
         super.onPause()
         heartbeatHandler.removeCallbacks(heartbeatRunnable)
+
+        duelRequestListener?.let {
+            FirebaseManager.duelRequestsRef.removeEventListener(it)
+        }
     }
     
     private fun refreshPlayerMonsterFromUser() {
@@ -388,7 +397,279 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                 .title(displayName)
                 .icon(getOtherPlayerDirectionIcon(direction, avatarBitmap))
         )
+        marker?.tag = userId
         marker?.let { otherPlayerMarkers[userId] = it }
+    }
+
+    private suspend fun handlePlayerMarkerClick(targetUserId: String) {
+        val currentUserId = AuthManager.userId ?: return
+        val currentUser = User.fetchById(currentUserId) ?: return
+        val targetUser = User.fetchById(targetUserId) ?: return
+
+        // Check if current player has an active monster and it's not fainted
+        val playerMonsterId = currentUser.firstMonsterId
+        if (playerMonsterId == null) {
+            Toast.makeText(this, "You don't have an active monster", Toast.LENGTH_SHORT).show()
+            Log.d("GeoMon", "Cannot challenge: No active monster")
+            return
+        }
+
+        val playerMonster = Monster.fetchById(playerMonsterId)
+        Log.d("GeoMon", "Player monster check: ${playerMonster?.name}, HP: ${playerMonster?.currentHp}, Fainted: ${playerMonster?.isFainted}")
+
+        if (playerMonster == null || playerMonster.isFainted || playerMonster.currentHp <= 0f) {
+            Toast.makeText(
+                this,
+                "Your active monster is fainted. Please change your active monster first.",
+                Toast.LENGTH_LONG
+            ).show()
+            Log.d("GeoMon", "Cannot challenge: Monster is fainted")
+            return
+        }
+
+        val activeThreshold = System.currentTimeMillis() - 5 * 60 * 1000
+
+        if (targetUser.lastActive < activeThreshold) {
+            AlertDialog.Builder(this)
+                .setTitle("Player Offline")
+                .setMessage("${targetUser.displayName} is currently offline")
+                .setPositiveButton("OK", null)
+                .show()
+        } else {
+            AlertDialog.Builder(this)
+                .setTitle("Challenge Player")
+                .setMessage("Do you want to challenge ${targetUser.displayName} to a duel?")
+                .setPositiveButton("Yes") { _, _ ->
+                    lifecycleScope.launch {
+                        sendDuelRequest(currentUser, targetUser)
+                    }
+                }
+                .setNegativeButton("No", null)
+                .show()
+        }
+    }
+
+    private suspend fun sendDuelRequest(challenger: User, target: User) {
+        // Double-check that challenger's active monster is still not fainted
+        val playerMonsterId = challenger.firstMonsterId
+        if (playerMonsterId == null) {
+            Toast.makeText(this, "You don't have an active monster", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+//        val playerMonster = Monster.fetchById(playerMonsterId)
+//        if (playerMonster == null || playerMonster.isFainted) {
+//            Toast.makeText(
+//                this,
+//                "Your active monster is fainted. Please change your active monster first.",
+//                Toast.LENGTH_LONG
+//            ).show()
+//            return
+//        }
+
+        val duelRequest = DuelRequest.create(
+            challengerId = challenger.id,
+            challengerName = challenger.displayName,
+            targetId = target.id,
+            targetName = target.displayName
+        )
+
+        if (duelRequest != null) {
+            Toast.makeText(
+                this,
+                "Duel request sent to ${target.displayName}",
+                Toast.LENGTH_SHORT
+            ).show()
+        } else {
+            Toast.makeText(
+                this,
+                "Failed to send duel request",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun setupDuelRequestListener() {
+        val currentUserId = AuthManager.userId ?: return
+
+        duelRequestListener?.let {
+            FirebaseManager.duelRequestsRef.removeEventListener(it)
+        }
+
+        duelRequestListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                for (child in snapshot.children) {
+                    val request = DuelRequest.fromSnapshot(child) ?: continue
+
+                    if (request.targetId == currentUserId && request.status == "pending") {
+                        showDuelChallengeDialog(request)
+                        break
+                    }
+
+                    if (request.challengerId == currentUserId && request.status == "rejected") {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "${request.targetName} rejected your duel request",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        DuelRequest.delete(request.id)
+                    }
+
+                    if (request.challengerId == currentUserId && request.status == "accepted") {
+                        // Challenger creates battle state and updates request
+                        createBattleState(request)
+                        break
+                    }
+
+                    if ((request.challengerId == currentUserId || request.targetId == currentUserId) && request.status == "battle_ready" && request.battleId != null) {
+                        // Both players launch battle with the same battle ID
+                        launchBattleFromRequest(request)
+                        DuelRequest.delete(request.id)
+                        break
+                    }
+                }
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("GeoMon", "Failed to listen for duel requests: ${error.message}")
+            }
+        }
+
+        FirebaseManager.duelRequestsRef.addValueEventListener(duelRequestListener!!)
+    }
+
+    private fun showDuelChallengeDialog(request: DuelRequest) {
+        val dialog = AlertDialog.Builder(this)
+            .setTitle("Duel Challenge")
+            .setMessage("${request.challengerName} challenged you to a duel. Do you accept?")
+            .setPositiveButton("Accept", null)
+            .setNegativeButton("Reject", null)
+            .setCancelable(false)
+            .create()
+
+        dialog.setOnShowListener {
+            val acceptButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            val rejectButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE)
+
+            acceptButton.setOnClickListener {
+                lifecycleScope.launch {
+                    val currentUserId = AuthManager.userId ?: return@launch
+                    val currentUser = User.fetchById(currentUserId) ?: run {
+                        dialog.dismiss()
+                        return@launch
+                    }
+
+                    // Check if accepting player has an active monster and it's not fainted
+                    val playerMonsterId = currentUser.firstMonsterId
+                    if (playerMonsterId == null) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "You don't have an active monster",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        DuelRequest.updateStatus(request.id, "rejected")
+                        dialog.dismiss()
+                        return@launch
+                    }
+
+                    val playerMonster = Monster.fetchById(playerMonsterId)
+                    if (playerMonster == null || playerMonster.isFainted || playerMonster.currentHp <= 0f ) {
+                        Toast.makeText(
+                            this@MainActivity,
+                            "Your active monster is fainted. Please change your active monster first.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        DuelRequest.updateStatus(request.id, "rejected")
+                        dialog.dismiss()
+                        return@launch
+                    }
+
+                    DuelRequest.updateStatus(request.id, "accepted")
+                    dialog.dismiss()
+                }
+            }
+
+            rejectButton.setOnClickListener {
+                DuelRequest.updateStatus(request.id, "rejected")
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
+    }
+
+    private fun createBattleState(request: DuelRequest) {
+        val currentUserId = AuthManager.userId ?: return
+
+        lifecycleScope.launch {
+            val currentUser = User.fetchById(currentUserId) ?: return@launch
+            val opponent = User.fetchById(request.targetId) ?: return@launch
+
+            val player1MonsterId = currentUser.firstMonsterId
+            val player2MonsterId = opponent.firstMonsterId
+
+            if (player1MonsterId == null || player2MonsterId == null) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "One of the players doesn't have an active monster",
+                    Toast.LENGTH_SHORT
+                ).show()
+                DuelRequest.delete(request.id)
+                return@launch
+            }
+
+            val player1Monster = Monster.fetchById(player1MonsterId) ?: return@launch
+            val player2Monster = Monster.fetchById(player2MonsterId) ?: return@launch
+
+            val battleState = BattleState.create(
+                player1Id = currentUserId,
+                player2Id = request.targetId,
+                player1MonsterId = player1MonsterId,
+                player2MonsterId = player2MonsterId,
+                player1Hp = player1Monster.currentHp,
+                player2Hp = player2Monster.currentHp
+            )
+
+            if (battleState == null) {
+                Toast.makeText(
+                    this@MainActivity,
+                    "Failed to create battle",
+                    Toast.LENGTH_SHORT
+                ).show()
+                DuelRequest.delete(request.id)
+                return@launch
+            }
+
+            // Update duel request with battle ID
+            DuelRequest.setBattleReady(request.id, battleState.id)
+        }
+    }
+
+    private fun launchBattleFromRequest(request: DuelRequest) {
+        val currentUserId = AuthManager.userId ?: return
+        val battleId = request.battleId ?: return
+
+        lifecycleScope.launch {
+            val currentUser = User.fetchById(currentUserId) ?: return@launch
+            val opponentId = if (request.challengerId == currentUserId) {
+                request.targetId
+            } else {
+                request.challengerId
+            }
+
+            val playerMonsterId = currentUser.firstMonsterId ?: return@launch
+            val opponentUser = User.fetchById(opponentId) ?: return@launch
+            val opponentMonsterId = opponentUser.firstMonsterId ?: return@launch
+
+            val intent = Intent(this@MainActivity, BattleActivity::class.java).apply {
+                putExtra(BattleActivity.EXTRA_PLAYER_ID, playerMonsterId)
+                putExtra(BattleActivity.EXTRA_ENEMY_ID, opponentMonsterId)
+                putExtra("IS_PVP", true)
+                putExtra("OPPONENT_USER_ID", opponentId)
+                putExtra("BATTLE_ID", battleId)
+            }
+            startActivity(intent)
+        }
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -517,6 +798,15 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                             "Log in to pick up map items",
                             Toast.LENGTH_SHORT
                         ).show()
+                    }
+                    true
+                }
+
+                is String -> {
+                    // This is a player marker (userId is stored as tag)
+                    val targetUserId = tag
+                    lifecycleScope.launch {
+                        handlePlayerMarkerClick(targetUserId)
                     }
                     true
                 }
