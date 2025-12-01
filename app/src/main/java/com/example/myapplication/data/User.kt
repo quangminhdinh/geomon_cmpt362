@@ -8,15 +8,14 @@ import kotlin.coroutines.suspendCoroutine
 data class User(
     val id: String = "",
     val displayName: String = "",
-    val monsterIds: List<String> = emptyList(), // List of owned monster IDs
+    val monsterIds: List<String> = emptyList(),
     val latitude: Double = 0.0,
     val longitude: Double = 0.0,
     val lastActive: Long = System.currentTimeMillis(),
     val activeMonsterIndex: Int = 0,
-    val bag: Map<String, Int> = emptyMap(), // bag containing items
-    val avatarUrl: String = "" // Firebase Storage URL for user avatar
+    val bag: Map<String, Int> = emptyMap(),
+    val avatarUrl: String = ""
 ) {
-    // Get the first monster ID (used for battles)
     val firstMonsterId: String?
         get() = monsterIds.getOrNull(activeMonsterIndex)
 
@@ -188,7 +187,6 @@ data class User(
                 }
         }
 
-        //refreshes from firebase so that the bag displays the correct item numbers
         fun updateBag(userId: String, bag: Map<String, Int>) {
             val updates = mapOf(
                 "bag" to bag,
@@ -205,7 +203,6 @@ data class User(
                 }
         }
 
-        // helper method to add items to the bag mapping
         fun addItem(userId: String, itemName: String, amount: Int) {
             if (amount <= 0) {
                 return
@@ -227,7 +224,6 @@ data class User(
                 }
         }
 
-        //Remove items from the bag
         fun removeByItemName(userId: String, itemName: String, amount: Int) {
             if (amount <= 0){
                 return

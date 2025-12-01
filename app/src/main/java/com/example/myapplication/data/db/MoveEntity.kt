@@ -2,7 +2,6 @@ package com.example.myapplication.data.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-// Move Entry Variable in the database
 @Entity(tableName = "moves")
 data class MoveEntity(
     @PrimaryKey val id: String,

@@ -6,7 +6,6 @@ import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.inputmethod.EditorInfo
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
@@ -43,7 +42,6 @@ class MonsterChatDialogFragment : DialogFragment() {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NORMAL, android.R.style.Theme_Material_Light_Dialog_MinWidth)
 
-        // Initialize Gemini
         MonsterAI.initialize(requireContext())
     }
 
@@ -58,7 +56,6 @@ class MonsterChatDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize views
         recyclerView = view.findViewById(R.id.recyclerChat)
         etMessage = view.findViewById(R.id.etMessage)
         btnSend = view.findViewById(R.id.btnSend)
@@ -67,12 +64,10 @@ class MonsterChatDialogFragment : DialogFragment() {
         btnClose = view.findViewById(R.id.btnClose)
         progressBar = view.findViewById(R.id.progressBar)
 
-        // Setup RecyclerView
         chatAdapter = ChatAdapter(chatMessages)
         recyclerView.layoutManager = LinearLayoutManager(context)
         recyclerView.adapter = chatAdapter
 
-        // Load monster data
         val monsterId = arguments?.getString(ARG_MONSTER_ID)
         if (monsterId == null) {
             Toast.makeText(context, "Monster ID not found", Toast.LENGTH_SHORT).show()
@@ -82,7 +77,6 @@ class MonsterChatDialogFragment : DialogFragment() {
 
         loadMonsterData(monsterId)
 
-        // Setup button listeners
         btnSend.setOnClickListener {
             sendMessage()
         }
@@ -117,14 +111,12 @@ class MonsterChatDialogFragment : DialogFragment() {
                 withContext(Dispatchers.Main) {
                     tvMonsterName.text = "${monster.name} (Lv.${monster.level})"
 
-                    // Load sprite
                     val spriteName = monster.name.lowercase().replace(" ", "_")
                     val resourceId = resources.getIdentifier(spriteName, "drawable", requireContext().packageName)
                     if (resourceId != 0) {
                         imgMonsterSprite.setImageResource(resourceId)
                     }
 
-                    // Generate welcome message using AI
                     generateWelcomeMessage()
                 }
 
@@ -159,16 +151,13 @@ class MonsterChatDialogFragment : DialogFragment() {
         val userMessage = etMessage.text.toString().trim()
         if (userMessage.isEmpty()) return
 
-        // Add user message
         addUserMessage(userMessage)
         conversationHistory.add("User: $userMessage")
         etMessage.text.clear()
 
-        // Disable input while processing
         setInputEnabled(false)
         showLoading(true)
 
-        // Get AI response
         lifecycleScope.launch {
             try {
                 val aiResponse = MonsterAI.getChatResponse(
@@ -182,7 +171,6 @@ class MonsterChatDialogFragment : DialogFragment() {
                 addMonsterMessage(aiResponse)
                 conversationHistory.add("${monster.name}: $aiResponse")
 
-                // Keep conversation history manageable (last 10 messages)
                 if (conversationHistory.size > 10) {
                     conversationHistory.removeAt(0)
                     conversationHistory.removeAt(0)

@@ -105,14 +105,12 @@ class BattleActivity : ComponentActivity() {
         val enemyId = intent.getStringExtra(EXTRA_ENEMY_ID)
 
         lifecycleScope.launch {
-            // Both IDs must be present
             if (playerId == null || enemyId == null) {
                 Log.e("BattleActivity", "Missing player or enemy ID")
                 finish()
                 return@launch
             }
 
-            // Fetch player monster from Firebase
             val fetchedPlayer = Monster.fetchById(playerId)
             if (fetchedPlayer == null) {
                 Log.e("BattleActivity", "Failed to fetch player monster")
@@ -121,7 +119,6 @@ class BattleActivity : ComponentActivity() {
             }
             player = fetchedPlayer
 
-            // Fetch enemy monster from Firebase
             val fetchedEnemy = Monster.fetchById(enemyId)
             if (fetchedEnemy == null) {
                 Log.e("BattleActivity", "Failed to fetch enemy monster")
@@ -130,11 +127,9 @@ class BattleActivity : ComponentActivity() {
             }
             opponent = fetchedEnemy
 
-            // Update UI
             tvPlayerName.text = player.name
             tvOpponentName.text = opponent.name
 
-            // Load sprites
             loadMonsterSprite(player, imgPlayer)
             loadMonsterSprite(opponent, imgOpponent)
 
@@ -144,9 +139,7 @@ class BattleActivity : ComponentActivity() {
         }
     }
 
-    // ===== SPRITE LOADING =====
     private fun loadMonsterSprite(monster: Monster, imageView: ImageView) {
-        // Convert monster name to lowercase for drawable lookup
         val spriteName = monster.name.lowercase().replace(" ", "_")
 
         val resourceId = resources.getIdentifier(
@@ -309,7 +302,6 @@ class BattleActivity : ComponentActivity() {
             }
         }
     }
-    //utilze damageCalc to calculate damage and add to string to for visual clarity
     private suspend fun performAttack(attacker: Monster, defender: Monster, move: Move, isPlayer: Boolean) {
         if (!move.doesHit()) {
             appendLog("${attacker.name}'s ${move.name} missed!")
@@ -355,7 +347,6 @@ class BattleActivity : ComponentActivity() {
     }
 
 
-    // AI now works on STRING move names, then loads Move via DB
     private suspend fun aiChoice(monster: Monster): Move {
         val moveNames = listOfNotNull(monster.move1, monster.move2, monster.move3, monster.move4)
         if (moveNames.isEmpty()) {
@@ -403,7 +394,6 @@ class BattleActivity : ComponentActivity() {
         const val EXTRA_ENEMY_ID    = "extra_enemy_id"
     }
 
-    // ===== DEBUG LOGGING =====
     private fun logStats() {
         logMonsterStats("PLAYER", player)
         logMonsterStats("ENEMY", opponent)
@@ -423,7 +413,6 @@ class BattleActivity : ComponentActivity() {
         mon.move3?.let { Log.d("BattleStats", "   Move3: $it") }
         mon.move4?.let { Log.d("BattleStats", "   Move4: $it") }
     }
-    // awarding the player with a gatcha system
     private fun giveVictoryRewards() {
         val userId = AuthManager.userId ?: return
 

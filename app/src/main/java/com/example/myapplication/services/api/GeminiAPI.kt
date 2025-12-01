@@ -22,9 +22,6 @@ object GeminiAPI {
         apiKey = key
     }
 
-    /**
-     * Generate content using Gemini REST API
-     */
     suspend fun generateContent(prompt: String): String {
         return withContext(Dispatchers.IO) {
             try {
@@ -44,16 +41,13 @@ object GeminiAPI {
                     readTimeout = 15000
                 }
 
-                // Build request body
                 val requestBody = buildRequestBody(prompt)
 
-                // Send request
                 OutputStreamWriter(connection.outputStream).use { writer ->
                     writer.write(requestBody.toString())
                     writer.flush()
                 }
 
-                // Read response
                 val responseCode = connection.responseCode
 
                 if (responseCode == HttpURLConnection.HTTP_OK) {

@@ -2,7 +2,6 @@ package com.example.myapplication.data.db
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-//Item Entity
 @Entity(tableName = "items")
 data class ItemEntity(
     @PrimaryKey val id: String,

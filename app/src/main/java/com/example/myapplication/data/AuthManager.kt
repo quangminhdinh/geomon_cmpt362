@@ -20,11 +20,7 @@ object AuthManager {
     val isSignedIn: Boolean
         get() = auth.currentUser != null
 
-    /**
-     * Sign in anonymously - creates a new anonymous user if not already signed in
-     */
     suspend fun signInAnonymously(): FirebaseUser? = suspendCoroutine { continuation ->
-        // If already signed in, return current user
         if (auth.currentUser != null) {
             Log.d("AuthManager", "Already signed in: ${auth.currentUser?.uid}")
             continuation.resume(auth.currentUser)
@@ -42,24 +38,15 @@ object AuthManager {
             }
     }
 
-    /**
-     * Sign out current user
-     */
     fun signOut() {
         auth.signOut()
         Log.d("AuthManager", "Signed out")
     }
 
-    /**
-     * Add auth state listener
-     */
     fun addAuthStateListener(listener: FirebaseAuth.AuthStateListener) {
         auth.addAuthStateListener(listener)
     }
 
-    /**
-     * Remove auth state listener
-     */
     fun removeAuthStateListener(listener: FirebaseAuth.AuthStateListener) {
         auth.removeAuthStateListener(listener)
     }

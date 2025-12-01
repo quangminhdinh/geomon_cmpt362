@@ -4,7 +4,6 @@
     android:layout_height="wrap_content"
     android:padding="4dp">
 
-    <!-- Monster message (aligned left) -->
     <TextView
         android:id="@+id/tvMessage"
         android:layout_width="wrap_content"

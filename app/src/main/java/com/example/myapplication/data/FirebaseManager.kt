@@ -11,9 +11,6 @@ object FirebaseManager {
     val monstersRef: DatabaseReference
         get() = database.getReference("monsters")
 
-    val battlesRef: DatabaseReference
-        get() = database.getReference("battles")
-
     val usersRef: DatabaseReference
         get() = database.getReference("users")
 

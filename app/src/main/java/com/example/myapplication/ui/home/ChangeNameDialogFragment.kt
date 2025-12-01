@@ -38,7 +38,6 @@ class ChangeNameDialogFragment : DialogFragment() {
         btnSave = view.findViewById(R.id.btnSave)
         btnCancel = view.findViewById(R.id.btnCancel)
 
-        // Load current display name
         loadCurrentDisplayName()
 
         btnCancel.setOnClickListener {

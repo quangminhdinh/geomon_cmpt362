@@ -47,7 +47,6 @@ class AllTargetActivity : AppCompatActivity() {
         loadAllMonsters()
     }
 
-    // Sorts Only monsters with low hp
     private fun loadAllMonsters() {
         val userId = AuthManager.userId
         if (userId == null) {
@@ -76,7 +75,7 @@ class AllTargetActivity : AppCompatActivity() {
             }
         }
     }
-//Tapping a monster results in the item consumed. monster levels on tap and firebase sync
+
     private fun onMonsterClicked(monster: Monster) {
         val userId = AuthManager.userId
         if (userId == null) {

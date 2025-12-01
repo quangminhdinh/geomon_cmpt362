@@ -6,7 +6,6 @@ import com.example.myapplication.data.db.AppDatabase
 import com.example.myapplication.data.db.MoveEntity
 import kotlin.random.Random
 
-// Battle Move object
 data class Move(
     val id: String?,
     val name: String?,
@@ -42,7 +41,6 @@ data class Move(
 
 
 
-        // Initialize by string name with database
         suspend fun initializeByName(context: Context, nameOrId: String?): Move {
             val db = AppDatabase.get(context)
             val dao = db.speciesDao()
@@ -67,7 +65,6 @@ data class Move(
             }
         }
 
-        // initializing without database
         fun initializeByName(name: String?): Move {
             return when (name) {
                 "Thunderbolt" -> Move(
@@ -112,7 +109,6 @@ data class Move(
         }
     }
 
-    // Accuracy Helper checker
     fun doesHit(): Boolean {
         val roll = Random.nextFloat()
         return roll <= accuracy

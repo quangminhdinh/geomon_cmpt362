@@ -149,7 +149,6 @@ class MonsterInfoActivity : AppCompatActivity() {
         bindMoveRow(chosenMove4, moveRow4, moveLeft4, moveRight4)
 
 
-        // moveRow1.setOnClickListener { /* open move details above  */ }
     }
 
     private fun bindMoveRow(

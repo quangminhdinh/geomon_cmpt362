@@ -6,7 +6,6 @@ import com.example.myapplication.data.db.SpeciesEntity
 import com.google.gson.Gson
 import com.example.myapplication.R
 import com.example.myapplication.data.db.ItemEntity
-//Stats representative for the Json file
 data class ItemRaw(
     val id: String,
     val displayName: String,
@@ -63,14 +62,12 @@ data class Move(
 )
 
 
-// Load Moves from JSON to list
 fun loadMovesRaw(context: Context): List<Move> {
     val json = context.resources.openRawResource(R.raw.moves)
         .bufferedReader().use { it.readText() }
     return Gson().fromJson(json, Array<Move>::class.java).toList()
 }
 
-// Utilizes loadMovesRaw to move to the appDatabase
 fun loadMoveEntitiesFromJson(context: Context): List<MoveEntity> =
     loadMovesRaw(context).map { m ->
         MoveEntity(
@@ -89,14 +86,12 @@ fun loadMoveEntitiesFromJson(context: Context): List<MoveEntity> =
         )
     }
 
-// Load Monster from JSON to list
 fun loadCreaturesRaw(context: Context): List<CreatureBase> {
     val json = context.resources.openRawResource(R.raw.stats)
         .bufferedReader().use { it.readText() }
     return Gson().fromJson(json, Array<CreatureBase>::class.java).toList()
 }
 
-// Load Monster from JSON to list
 fun loadSpeciesEntitiesFromJson(context: Context): List<SpeciesEntity> =
     loadCreaturesRaw(context).map { b ->
         SpeciesEntity(
@@ -117,7 +112,7 @@ fun loadSpeciesEntitiesFromJson(context: Context): List<SpeciesEntity> =
             move4Id = b.move4
         )
     }
-// Extraction Methods for Items
+
 fun loadItemsRaw(context: Context): List<ItemRaw> {
     val json = context.resources.openRawResource(R.raw.items)
         .bufferedReader()

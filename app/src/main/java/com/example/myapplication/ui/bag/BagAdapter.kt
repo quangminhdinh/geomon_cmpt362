@@ -7,7 +7,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.myapplication.R
-//Bag Adapter for Bag activities items
+
 class BagAdapter(
     private val items: List<BagItem>,
     private val onItemClick: (BagItem) -> Unit

@@ -36,7 +36,6 @@ class PokedexAdapter(
         holder.tvMonsterLevel.text = "Lv. ${monster.level}"
         holder.tvMonsterHp.text = "HP: ${monster.currentHp.toInt()}/${monster.maxHp.toInt()}"
 
-        // Apply red glow for fainted monsters
         if (monster.isFainted || monster.currentHp <= 0) {
             holder.cardView.setCardBackgroundColor(Color.parseColor("#FFCCCC")) // Light red
         } else {
