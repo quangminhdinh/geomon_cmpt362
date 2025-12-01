@@ -51,6 +51,12 @@ class PlayerStatsDialogFragment : DialogFragment(), ChangeAvatarDialogFragment.O
                     .load(user.avatarUrl)
                     .circleCrop()
                     .into(imgPlayerAvatar)
+            } else {
+                // Set app logo as default avatar
+                Glide.with(this@PlayerStatsDialogFragment)
+                    .load(R.mipmap.ic_launcher_round)
+                    .circleCrop()
+                    .into(imgPlayerAvatar)
             }
 
             user.firstMonsterId?.let { mid ->

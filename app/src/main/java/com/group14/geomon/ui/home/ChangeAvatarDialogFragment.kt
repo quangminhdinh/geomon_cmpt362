@@ -86,6 +86,12 @@ class ChangeAvatarDialogFragment : DialogFragment() {
                     .load(user.avatarUrl)
                     .circleCrop()
                     .into(imgAvatarPreview)
+            } else {
+                // Set app logo as default avatar
+                Glide.with(this@ChangeAvatarDialogFragment)
+                    .load(R.mipmap.ic_launcher_round)
+                    .circleCrop()
+                    .into(imgAvatarPreview)
             }
         }
     }

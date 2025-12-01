@@ -155,17 +155,19 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     longitude = 0.0
                 )
                 playerMonsterId = playerMonster.id
-                withContext(Dispatchers.Main) {
-                    updateMonsterPanel()
-                    refreshPlayerAvatar()
-                }
 
-                User.createOrUpdate(
+                val newUser = User.createOrUpdate(
                     userId = userId,
                     displayName = "Player",
                     monsterIds = listOf(playerMonster.id)
                 )
                 Log.d("GeoMon", "Created player monster: ${playerMonster.id}")
+
+                withContext(Dispatchers.Main) {
+                    updateMonsterPanel()
+                    binding.playerNameOnPanel.text = newUser.displayName
+                    refreshPlayerAvatar()
+                }
             } else {
                 val firstMonsterId = user.firstMonsterId
                 val index = user.activeMonsterIndex
@@ -1190,8 +1192,28 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                             }
                         })
                 } else {
-                    binding.imgPlayer.setImageResource(android.R.drawable.sym_def_app_icon)
-                    cachedPlayerAvatarBitmap = null
+                    // Set app logo as default avatar
+                    Glide.with(this@MainActivity)
+                        .load(R.mipmap.ic_launcher_round)
+                        .circleCrop()
+                        .into(binding.imgPlayer)
+
+                    Glide.with(this@MainActivity)
+                        .asBitmap()
+                        .load(R.mipmap.ic_launcher_round)
+                        .circleCrop()
+                        .into(object : com.bumptech.glide.request.target.CustomTarget<Bitmap>() {
+                            override fun onResourceReady(
+                                resource: Bitmap,
+                                transition: com.bumptech.glide.request.transition.Transition<in Bitmap>?
+                            ) {
+                                cachedPlayerAvatarBitmap = resource
+                                updatePlayerMarkerWithAvatar()
+                            }
+
+                            override fun onLoadCleared(placeholder: Drawable?) {
+                            }
+                        })
                 }
             }
         }
