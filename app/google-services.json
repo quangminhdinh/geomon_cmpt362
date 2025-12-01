@@ -34,6 +34,35 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:466734213088:android:11298ee4a41b18ac20ed85",
+        "android_client_info": {
+          "package_name": "com.group14.geomon"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "466734213088-ql0i47ciakoivp5o8eg9b9v6e5149gmr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi8aXHEdDtsQp7eR49CrR5dq2htZK3WwQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "466734213088-ql0i47ciakoivp5o8eg9b9v6e5149gmr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
