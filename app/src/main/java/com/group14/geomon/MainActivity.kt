@@ -1046,19 +1046,28 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val drawable: Drawable = ContextCompat.getDrawable(this, resId)
             ?: return BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)
 
-        val w = dp(sizeDp)
-        val h = dp(sizeDp)
+        val size = dp(sizeDp)
 
-        val bmp: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
-            Bitmap.createScaledBitmap(drawable.bitmap, w, h, true)
+        // Get the original bitmap
+        val originalBitmap: Bitmap = if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            drawable.bitmap
         } else {
-            val b = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            val c = Canvas(b)
-            drawable.setBounds(0, 0, w, h)
-            drawable.draw(c)
-            b
+            val temp = Bitmap.createBitmap(
+                drawable.intrinsicWidth.coerceAtLeast(1),
+                drawable.intrinsicHeight.coerceAtLeast(1),
+                Bitmap.Config.ARGB_8888
+            )
+            val tempCanvas = Canvas(temp)
+            drawable.setBounds(0, 0, tempCanvas.width, tempCanvas.height)
+            drawable.draw(tempCanvas)
+            temp
         }
-        return BitmapDescriptorFactory.fromBitmap(bmp)
+
+        // Simply scale the bitmap uniformly to the target size
+        // This preserves any transparent padding in the original image
+        val scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, size, size, true)
+
+        return BitmapDescriptorFactory.fromBitmap(scaledBitmap)
     }
     private fun checkAndSpawnItems() {
         val playerLatLng = trackingViewModel.latLng.value ?: return
@@ -1132,7 +1141,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     .position(LatLng(monster.latitude, monster.longitude))
                     .title("${monster.name} (Lv.${monster.level})")
                     //.icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
-                    .icon(monsterIconByName(monster.name))
+                    .icon(monsterIconByName(monster.name, 84))
                     .anchor(0.5f, 1f)
 
             )
