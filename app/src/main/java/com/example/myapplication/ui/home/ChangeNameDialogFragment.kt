@@ -76,6 +76,9 @@ class ChangeNameDialogFragment : DialogFragment() {
         FirebaseManager.usersRef.child(userId).child("displayName").setValue(newName)
             .addOnSuccessListener {
                 Toast.makeText(context, "Name updated", Toast.LENGTH_SHORT).show()
+
+                (activity as? OnNameUpdatedListener)?.onNameUpdated(newName)
+
                 dismiss()
             }
             .addOnFailureListener {
@@ -89,6 +92,10 @@ class ChangeNameDialogFragment : DialogFragment() {
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
         )
+    }
+
+    interface OnNameUpdatedListener {
+        fun onNameUpdated(newName: String)
     }
 
     companion object {
