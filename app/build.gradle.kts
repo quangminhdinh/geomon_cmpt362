@@ -12,11 +12,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.myapplication"
+    namespace = "com.group14.geomon"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.myapplication"
+        applicationId = "com.group14.geomon"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
