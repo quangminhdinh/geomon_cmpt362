@@ -22,14 +22,23 @@ import com.example.myapplication.data.User
 import com.example.myapplication.data.FirebaseManager
 import android.widget.LinearLayout
 import android.widget.Toast
+import com.example.myapplication.data.BattleState
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.ValueEventListener
 
 
 class BattleActivity : ComponentActivity() {
 
     private lateinit var player: Monster
     private lateinit var opponent: Monster
+    private var isPvP: Boolean = false
+    private var opponentUserId: String? = null
+    private var battleId: String? = null
+    private var battleStateListener: ValueEventListener? = null
+    private var currentUserId: String? = null
+    private var isMyTurn: Boolean = false
 
-    // UI references
     private lateinit var tvPlayerName: TextView
     private lateinit var tvOpponentName: TextView
 
@@ -65,7 +74,6 @@ class BattleActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battle)
 
-        // Initialize UI references
         tvPlayerName    = findViewById(R.id.tvPlayerName)
         tvOpponentName  = findViewById(R.id.tvOpponentName)
 
@@ -95,14 +103,15 @@ class BattleActivity : ComponentActivity() {
         btnMove3Type = findViewById(R.id.moveLeftTextType3)
         btnMove4Type = findViewById(R.id.moveLeftTextType4)
 
-
-
-
         btnRun     = findViewById(R.id.btnRun)
         btnCapture = findViewById(R.id.btnCapture)
 
         val playerId = intent.getStringExtra(EXTRA_PLAYER_ID)
         val enemyId = intent.getStringExtra(EXTRA_ENEMY_ID)
+        isPvP = intent.getBooleanExtra("IS_PVP", false)
+        opponentUserId = intent.getStringExtra("OPPONENT_USER_ID")
+        battleId = intent.getStringExtra("BATTLE_ID")
+        currentUserId = AuthManager.userId
 
         lifecycleScope.launch {
             if (playerId == null || enemyId == null) {
@@ -136,6 +145,10 @@ class BattleActivity : ComponentActivity() {
             updateHpUi()
             setupMoveButtons()
             logStats()
+
+            if (isPvP && battleId != null) {
+                setupBattleStateListener()
+            }
         }
     }
 
@@ -200,8 +213,13 @@ class BattleActivity : ComponentActivity() {
         btnMove3.setOnClickListener { onPlayerMoveSelected(player.move3) }
         btnMove4.setOnClickListener { onPlayerMoveSelected(player.move4) }
 
-        btnRun.setOnClickListener { runFromBattle() }
-        btnCapture.setOnClickListener { attemptCapture() }
+        if (isPvP) {
+            btnRun.isEnabled = false
+            btnCapture.isEnabled = false
+        } else {
+            btnRun.setOnClickListener { runFromBattle() }
+            btnCapture.setOnClickListener { attemptCapture() }
+        }
     }
 
     private fun attemptCapture() {
@@ -266,14 +284,20 @@ class BattleActivity : ComponentActivity() {
         tvAnnouncement.text = message
     }
 
-
     private fun onPlayerMoveSelected(moveName: String?) {
         if (moveName == null) return
         if (player.isFainted || opponent.isFainted) return
 
+        if (isPvP) {
+            handlePvPMoveSelection(moveName)
+        } else {
+            handlePvEMoveSelection(moveName)
+        }
+    }
+
+    private fun handlePvEMoveSelection(moveName: String) {
         lifecycleScope.launch {
             setMoveButtonsEnabled(false)
-
 
             val chosenMove = Move.initializeByName(this@BattleActivity, moveName)
 
@@ -300,6 +324,39 @@ class BattleActivity : ComponentActivity() {
             if (!player.isFainted && !opponent.isFainted) {
                 setMoveButtonsEnabled(true)
             }
+        }
+    }
+
+    private fun handlePvPMoveSelection(moveName: String) {
+        if (!isMyTurn) {
+            Toast.makeText(this, "Wait for your turn!", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val bId = battleId ?: return
+        val userId = currentUserId ?: return
+
+        setMoveButtonsEnabled(false)
+        appendLog("Executing move...")
+
+        lifecycleScope.launch {
+            val move = Move.initializeByName(this@BattleActivity, moveName)
+            performAttack(player, opponent, move, true)
+            delay(1000)
+
+            FirebaseManager.battleStatesRef.child(bId).get()
+                .addOnSuccessListener { snapshot ->
+                    val state = BattleState.fromSnapshot(snapshot) ?: return@addOnSuccessListener
+                    val isPlayer1 = userId == state.player1Id
+
+                    val player1Hp = if (isPlayer1) player.currentHp else opponent.currentHp
+                    val player2Hp = if (isPlayer1) opponent.currentHp else player.currentHp
+                    val nextTurn = if (isPlayer1) state.player2Id else state.player1Id
+
+                    BattleState.updateHpAndNextTurn(bId, player1Hp, player2Hp, nextTurn, moveName, userId)
+                }
+
+            checkBattleEnd()
         }
     }
     private suspend fun performAttack(attacker: Monster, defender: Monster, move: Move, isPlayer: Boolean) {
@@ -357,36 +414,221 @@ class BattleActivity : ComponentActivity() {
         return Move.initializeByName(this@BattleActivity, chosenName)
     }
 
-    private fun checkBattleEnd() {
-        if (player.isFainted || opponent.isFainted) {
-            btnRun.isEnabled = false
-            btnCapture.isEnabled = false
-            lifecycleScope.launch {
-                delay(1000)
-                finish()
+    private var lastProcessedMoveTimestamp: Long = 0
+
+    private fun setupBattleStateListener() {
+        val bId = battleId ?: return
+        val userId = currentUserId ?: return
+
+        battleStateListener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val state = BattleState.fromSnapshot(snapshot) ?: return
+
+                if (state.status == "finished") {
+                    battleStateListener?.let {
+                        FirebaseManager.battleStatesRef.child(bId).removeEventListener(it)
+                    }
+
+                    updateHpFromBattleState(state)
+
+                    lifecycleScope.launch {
+                        delay(500)
+                        checkBattleEnd()
+                    }
+                    return
+                }
+
+                val wasMyTurn = isMyTurn
+                isMyTurn = state.currentTurn == userId
+
+                if (state.lastMove != null && state.lastMoveUser != null &&
+                    state.lastMoveUser != userId &&
+                    state.timestamp > lastProcessedMoveTimestamp) {
+
+                    lastProcessedMoveTimestamp = state.timestamp
+
+                    val oldPlayerHp = player.currentHp
+                    val oldOpponentHp = opponent.currentHp
+                    updateHpFromBattleState(state)
+
+                    val playerHpChange = player.currentHp - oldPlayerHp
+
+                    lifecycleScope.launch {
+                        if (playerHpChange < 0) {
+                            appendLog("Opponent used ${state.lastMove}! Your ${player.name} took ${-playerHpChange.toInt()} damage.")
+                        } else {
+                            appendLog("Opponent used ${state.lastMove}!")
+                        }
+
+                        delay(500)
+
+                        if (player.isFainted || opponent.isFainted) {
+                            val winnerId = if (opponent.isFainted) userId else opponentUserId
+                            BattleState.finishBattle(bId, winnerId, state.player1Hp, state.player2Hp, state.lastMove, state.lastMoveUser)
+                        }
+
+                        checkBattleEnd()
+
+                        if (isMyTurn && !player.isFainted && !opponent.isFainted) {
+                            delay(500)
+                            appendLog("Your turn! Select a move.")
+                            setMoveButtonsEnabled(true)
+                        }
+                    }
+                } else {
+                    updateHpFromBattleState(state)
+
+                    if (!wasMyTurn && isMyTurn && !player.isFainted && !opponent.isFainted) {
+                        lifecycleScope.launch {
+                            delay(300)
+                            appendLog("Your turn! Select a move.")
+                            setMoveButtonsEnabled(true)
+                        }
+                    } else if (wasMyTurn && !isMyTurn) {
+                        appendLog("Opponent's turn...")
+                        setMoveButtonsEnabled(false)
+                    } else if (!isMyTurn) {
+                        appendLog("Opponent's turn...")
+                        setMoveButtonsEnabled(false)
+                    }
+
+                    checkBattleEnd()
+                }
             }
-        }
-        if (player.isFainted && opponent.isFainted) {
-            appendLog("Both monsters fainted! It's a tie.")
-            setMoveButtonsEnabled(false)
-            // Delete opponent if wild
-            if (opponent.isWild) {
-                FirebaseManager.monstersRef.child(opponent.id).removeValue()
-            }
-        } else if (player.isFainted) {
-            appendLog("${player.name} fainted! Defeat!")
-            setMoveButtonsEnabled(false)
-        } else if (opponent.isFainted) {
-            appendLog("${opponent.name} fainted! Victory!")
-            giveVictoryRewards()
-            setMoveButtonsEnabled(false)
-            // Delete opponent if wild
-            if (opponent.isWild) {
-                FirebaseManager.monstersRef.child(opponent.id).removeValue()
-                Log.d("BattleActivity", "Defeated wild monster ${opponent.id} deleted from Firebase")
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e("BattleActivity", "Battle state listener cancelled: ${error.message}")
             }
         }
 
+        FirebaseManager.battleStatesRef.child(bId).addValueEventListener(battleStateListener!!)
+    }
+
+    private fun updateHpFromBattleState(state: BattleState) {
+        val userId = currentUserId ?: return
+
+        val myHp = if (userId == state.player1Id) state.player1Hp else state.player2Hp
+        val opponentHp = if (userId == state.player1Id) state.player2Hp else state.player1Hp
+
+        player.currentHp = myHp
+        opponent.currentHp = opponentHp
+        updateHpUi()
+    }
+
+    private fun checkBattleEnd() {
+        if (player.isFainted && opponent.isFainted) {
+            appendLog("Both monsters fainted! It's a tie.")
+            setMoveButtonsEnabled(false)
+            btnRun.isEnabled = false
+            btnCapture.isEnabled = false
+            if (!isPvP && opponent.isWild) {
+                FirebaseManager.monstersRef.child(opponent.id).removeValue()
+            }
+            lifecycleScope.launch {
+                delay(2000)
+                finish()
+            }
+        } else if (player.isFainted || player.currentHp <= 0f) {
+            appendLog("${player.name} fainted! Defeat!")
+            setMoveButtonsEnabled(false)
+            btnRun.isEnabled = false
+            btnCapture.isEnabled = false
+            if (isPvP) {
+                handlePvPDefeat()
+            }
+            lifecycleScope.launch {
+                delay(2000)
+                finish()
+            }
+        } else if (opponent.isFainted || opponent.currentHp <= 0f) {
+            appendLog("${opponent.name} fainted! Victory!")
+            setMoveButtonsEnabled(false)
+            btnRun.isEnabled = false
+            btnCapture.isEnabled = false
+            if (isPvP) {
+                handlePvPVictory()
+            } else {
+                giveVictoryRewards()
+            }
+            if (!isPvP && opponent.isWild) {
+                FirebaseManager.monstersRef.child(opponent.id).removeValue()
+                Log.d("BattleActivity", "Defeated wild monster ${opponent.id} deleted from Firebase")
+            }
+            lifecycleScope.launch {
+                delay(2000)
+                finish()
+            }
+        }
+    }
+
+    private fun handlePvPVictory() {
+        val currentUserId = AuthManager.userId ?: return
+        val opponentId = opponentUserId ?: return
+
+        lifecycleScope.launch {
+            val opponentUser = User.fetchById(opponentId) ?: return@launch
+
+            if (opponentUser.bag.isEmpty()) {
+                Toast.makeText(
+                    this@BattleActivity,
+                    "Victory! Opponent has no items to take.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+
+            val randomItem = opponentUser.bag.entries.random()
+            val itemName = randomItem.key
+            val itemCount = randomItem.value
+
+            if (itemCount > 0) {
+                User.removeByItemName(opponentId, itemName, 1)
+                User.addItem(currentUserId, itemName, 1)
+
+                Toast.makeText(
+                    this@BattleActivity,
+                    "Victory! You received 1x $itemName from your opponent!",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                Log.d("BattleActivity", "PvP Victory: Took $itemName from opponent $opponentId")
+            }
+        }
+    }
+
+    private fun handlePvPDefeat() {
+        val currentUserId = AuthManager.userId ?: return
+        val opponentId = opponentUserId ?: return
+
+        lifecycleScope.launch {
+            val currentUser = User.fetchById(currentUserId) ?: return@launch
+
+            if (currentUser.bag.isEmpty()) {
+                Toast.makeText(
+                    this@BattleActivity,
+                    "Defeat! You have no items to lose.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@launch
+            }
+
+            val randomItem = currentUser.bag.entries.random()
+            val itemName = randomItem.key
+            val itemCount = randomItem.value
+
+            if (itemCount > 0) {
+                User.removeByItemName(currentUserId, itemName, 1)
+                User.addItem(opponentId, itemName, 1)
+
+                Toast.makeText(
+                    this@BattleActivity,
+                    "Defeat! You lost 1x $itemName to your opponent!",
+                    Toast.LENGTH_LONG
+                ).show()
+
+                Log.d("BattleActivity", "PvP Defeat: Lost $itemName to opponent $opponentId")
+            }
+        }
     }
 
     companion object {
@@ -446,6 +688,16 @@ class BattleActivity : ComponentActivity() {
         }
         FirebaseManager.monstersRef.child(opponent.id).removeValue()
         finish()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+
+        if (isPvP && battleId != null) {
+            battleStateListener?.let {
+                FirebaseManager.battleStatesRef.child(battleId!!).removeEventListener(it)
+            }
+        }
     }
 
 }

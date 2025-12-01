@@ -14,6 +14,12 @@ object FirebaseManager {
     val usersRef: DatabaseReference
         get() = database.getReference("users")
 
+    val duelRequestsRef: DatabaseReference
+        get() = database.getReference("duelRequests")
+
+    val battleStatesRef: DatabaseReference
+        get() = database.getReference("battleStates")
+
     fun getReference(path: String): DatabaseReference {
         return database.getReference(path)
     }
