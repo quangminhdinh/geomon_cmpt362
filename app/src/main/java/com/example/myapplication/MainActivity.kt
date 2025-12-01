@@ -406,7 +406,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
         val currentUser = User.fetchById(currentUserId) ?: return
         val targetUser = User.fetchById(targetUserId) ?: return
 
-        // Check if current player has an active monster and it's not fainted
         val playerMonsterId = currentUser.firstMonsterId
         if (playerMonsterId == null) {
             Toast.makeText(this, "You don't have an active monster", Toast.LENGTH_SHORT).show()
@@ -450,22 +449,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
     }
 
     private suspend fun sendDuelRequest(challenger: User, target: User) {
-        // Double-check that challenger's active monster is still not fainted
         val playerMonsterId = challenger.firstMonsterId
         if (playerMonsterId == null) {
             Toast.makeText(this, "You don't have an active monster", Toast.LENGTH_SHORT).show()
             return
         }
-
-//        val playerMonster = Monster.fetchById(playerMonsterId)
-//        if (playerMonster == null || playerMonster.isFainted) {
-//            Toast.makeText(
-//                this,
-//                "Your active monster is fainted. Please change your active monster first.",
-//                Toast.LENGTH_LONG
-//            ).show()
-//            return
-//        }
 
         val duelRequest = DuelRequest.create(
             challengerId = challenger.id,
@@ -516,13 +504,11 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                     }
 
                     if (request.challengerId == currentUserId && request.status == "accepted") {
-                        // Challenger creates battle state and updates request
                         createBattleState(request)
                         break
                     }
 
                     if ((request.challengerId == currentUserId || request.targetId == currentUserId) && request.status == "battle_ready" && request.battleId != null) {
-                        // Both players launch battle with the same battle ID
                         launchBattleFromRequest(request)
                         DuelRequest.delete(request.id)
                         break
@@ -559,7 +545,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                         return@launch
                     }
 
-                    // Check if accepting player has an active monster and it's not fainted
                     val playerMonsterId = currentUser.firstMonsterId
                     if (playerMonsterId == null) {
                         Toast.makeText(
@@ -640,7 +625,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                 return@launch
             }
 
-            // Update duel request with battle ID
             DuelRequest.setBattleReady(request.id, battleState.id)
         }
     }
@@ -803,7 +787,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, ChangeAvatarDialog
                 }
 
                 is String -> {
-                    // This is a player marker (userId is stored as tag)
                     val targetUserId = tag
                     lifecycleScope.launch {
                         handlePlayerMarkerClick(targetUserId)

@@ -88,7 +88,7 @@ data class BattleState(
                 player2Id = player2Id,
                 player1MonsterId = player1MonsterId,
                 player2MonsterId = player2MonsterId,
-                currentTurn = player1Id,
+                currentTurn = player2Id,
                 player1Hp = player1Hp,
                 player2Hp = player2Hp,
                 status = "in_progress"

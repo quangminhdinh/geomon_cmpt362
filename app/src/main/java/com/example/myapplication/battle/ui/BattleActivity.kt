@@ -39,7 +39,6 @@ class BattleActivity : ComponentActivity() {
     private var currentUserId: String? = null
     private var isMyTurn: Boolean = false
 
-    // UI references
     private lateinit var tvPlayerName: TextView
     private lateinit var tvOpponentName: TextView
 
@@ -75,7 +74,6 @@ class BattleActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battle)
 
-        // Initialize UI references
         tvPlayerName    = findViewById(R.id.tvPlayerName)
         tvOpponentName  = findViewById(R.id.tvOpponentName)
 
@@ -104,9 +102,6 @@ class BattleActivity : ComponentActivity() {
         btnMove2Type = findViewById(R.id.moveLeftTextType2)
         btnMove3Type = findViewById(R.id.moveLeftTextType3)
         btnMove4Type = findViewById(R.id.moveLeftTextType4)
-
-
-
 
         btnRun     = findViewById(R.id.btnRun)
         btnCapture = findViewById(R.id.btnCapture)
@@ -289,7 +284,6 @@ class BattleActivity : ComponentActivity() {
         tvAnnouncement.text = message
     }
 
-
     private fun onPlayerMoveSelected(moveName: String?) {
         if (moveName == null) return
         if (player.isFainted || opponent.isFainted) return
@@ -346,12 +340,10 @@ class BattleActivity : ComponentActivity() {
         appendLog("Executing move...")
 
         lifecycleScope.launch {
-            // Execute move locally and update local HP
             val move = Move.initializeByName(this@BattleActivity, moveName)
             performAttack(player, opponent, move, true)
             delay(1000)
 
-            // Update Firebase with both players' HP
             FirebaseManager.battleStatesRef.child(bId).get()
                 .addOnSuccessListener { snapshot ->
                     val state = BattleState.fromSnapshot(snapshot) ?: return@addOnSuccessListener
@@ -361,8 +353,6 @@ class BattleActivity : ComponentActivity() {
                     val player2Hp = if (isPlayer1) opponent.currentHp else player.currentHp
                     val nextTurn = if (isPlayer1) state.player2Id else state.player1Id
 
-                    // Always update HP and switch turn, even if battle ends
-                    // This allows the loser to process the final damage before battle finishes
                     BattleState.updateHpAndNextTurn(bId, player1Hp, player2Hp, nextTurn, moveName, userId)
                 }
 
@@ -424,7 +414,6 @@ class BattleActivity : ComponentActivity() {
         return Move.initializeByName(this@BattleActivity, chosenName)
     }
 
-    private var lastProcessedTurn: String = ""
     private var lastProcessedMoveTimestamp: Long = 0
 
     private fun setupBattleStateListener() {
@@ -440,10 +429,8 @@ class BattleActivity : ComponentActivity() {
                         FirebaseManager.battleStatesRef.child(bId).removeEventListener(it)
                     }
 
-                    // Update HP from final state
                     updateHpFromBattleState(state)
 
-                    // Handle battle end
                     lifecycleScope.launch {
                         delay(500)
                         checkBattleEnd()
@@ -454,23 +441,18 @@ class BattleActivity : ComponentActivity() {
                 val wasMyTurn = isMyTurn
                 isMyTurn = state.currentTurn == userId
 
-                // Check if opponent made a move (new timestamp and not our move)
                 if (state.lastMove != null && state.lastMoveUser != null &&
                     state.lastMoveUser != userId &&
                     state.timestamp > lastProcessedMoveTimestamp) {
 
                     lastProcessedMoveTimestamp = state.timestamp
 
-                    // Update HP from Firebase (remote HP already updated by opponent)
                     val oldPlayerHp = player.currentHp
                     val oldOpponentHp = opponent.currentHp
                     updateHpFromBattleState(state)
 
-                    // Calculate HP changes
                     val playerHpChange = player.currentHp - oldPlayerHp
-                    val opponentHpChange = opponent.currentHp - oldOpponentHp
 
-                    // Show text announcement about opponent's move
                     lifecycleScope.launch {
                         if (playerHpChange < 0) {
                             appendLog("Opponent used ${state.lastMove}! Your ${player.name} took ${-playerHpChange.toInt()} damage.")
@@ -480,7 +462,6 @@ class BattleActivity : ComponentActivity() {
 
                         delay(500)
 
-                        // Check if this move caused a faint, and if so, finish the battle
                         if (player.isFainted || opponent.isFainted) {
                             val winnerId = if (opponent.isFainted) userId else opponentUserId
                             BattleState.finishBattle(bId, winnerId, state.player1Hp, state.player2Hp, state.lastMove, state.lastMoveUser)
@@ -495,7 +476,6 @@ class BattleActivity : ComponentActivity() {
                         }
                     }
                 } else {
-                    // Just update HP without announcement (initial state or turn switch)
                     updateHpFromBattleState(state)
 
                     if (!wasMyTurn && isMyTurn && !player.isFainted && !opponent.isFainted) {
@@ -541,7 +521,6 @@ class BattleActivity : ComponentActivity() {
             setMoveButtonsEnabled(false)
             btnRun.isEnabled = false
             btnCapture.isEnabled = false
-            // Delete opponent if wild (not PvP)
             if (!isPvP && opponent.isWild) {
                 FirebaseManager.monstersRef.child(opponent.id).removeValue()
             }
@@ -571,7 +550,6 @@ class BattleActivity : ComponentActivity() {
             } else {
                 giveVictoryRewards()
             }
-            // Delete opponent if wild (not PvP)
             if (!isPvP && opponent.isWild) {
                 FirebaseManager.monstersRef.child(opponent.id).removeValue()
                 Log.d("BattleActivity", "Defeated wild monster ${opponent.id} deleted from Firebase")
