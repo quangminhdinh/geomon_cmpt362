@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Bottom/base layer -->
+    <item android:drawable="@drawable/battlefoebox_layer3" />
+    <!-- Middle layer  -->
+    <item android:drawable="@drawable/battlefoebox_layer2" />
+    <!-- Top layer -->
+    <item android:drawable="@drawable/battlefoebox_layer1" />
+</layer-list>
