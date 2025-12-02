@@ -172,20 +172,47 @@
         app:layout_constraintTop_toTopOf="@id/foePanel"
         app:layout_constraintHorizontal_chainStyle="packed"/>
 
-    <TextView
-        android:id="@+id/tvAnnouncement"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="Battle Start!"
-        android:textStyle="bold"
-        android:textSize="16sp"
-        android:gravity="center"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/imgOpponent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/announcementPanel"
+            android:layout_width="0dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/imgOpponent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
 
-    <ImageView
+            <ImageView
+                android:id="@+id/imgAnnouncementBg"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:src="@drawable/battlemessage"
+                android:scaleType="fitXY"
+                android:contentDescription="@null"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+
+            <TextView
+                android:id="@+id/tvAnnouncement"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:gravity="center"
+                android:text="Battle Start!"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="#111111"
+                android:includeFontPadding="false"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"/>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <ImageView
         android:id="@+id/imgPlayer"
         android:layout_width="150dp"
         android:layout_height="150dp"
@@ -253,7 +280,7 @@
 
         <TextView
             android:id="@+id/tvPlayerName"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="40dp"
             android:layout_marginTop="10dp"
