@@ -22,7 +22,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCw0pql8Ur6ToenD5P6SzPRsyELyz4QtA4" />
+            android:value="[GEO_API_KEY_HERE]" />
 
         <activity
             android:name=".MainActivity"
@@ -57,5 +57,6 @@
             android:name=".services.tracking.TrackingService"
             android:exported="false" />
     </application>
+
 
 </manifest>
