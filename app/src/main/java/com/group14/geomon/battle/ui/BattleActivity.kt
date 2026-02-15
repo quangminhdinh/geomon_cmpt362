@@ -45,6 +45,9 @@ class BattleActivity : ComponentActivity() {
     private lateinit var hpPlayer: ProgressBar
     private lateinit var hpOpponent: ProgressBar
 
+    private lateinit var tvPlayerHpValue: TextView
+    private lateinit var tvOpponentHpValue: TextView
+
     private lateinit var tvAnnouncement: TextView
 
     private lateinit var imgPlayer: ImageView
@@ -70,6 +73,7 @@ class BattleActivity : ComponentActivity() {
     private lateinit var btnRun: Button
     private lateinit var btnCapture: Button
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_battle)
@@ -79,6 +83,8 @@ class BattleActivity : ComponentActivity() {
 
         hpPlayer        = findViewById(R.id.hpPlayer)
         hpOpponent      = findViewById(R.id.hpOpponent)
+        tvPlayerHpValue = findViewById(R.id.tvPlayerHpValue)
+        tvOpponentHpValue = findViewById(R.id.tvOpponentHpValue)
 
         tvAnnouncement  = findViewById(R.id.tvAnnouncement)
 
@@ -278,6 +284,9 @@ class BattleActivity : ComponentActivity() {
 
         hpPlayer.progress = player.currentHp.toInt()
         hpOpponent.progress = opponent.currentHp.toInt()
+
+        tvPlayerHpValue.text = "${player.currentHp.toInt()}/${player.maxHp.toInt()}"
+        tvOpponentHpValue.text = "${opponent.currentHp.toInt()}/${opponent.maxHp.toInt()}"
     }
 
     private fun appendLog(message: String) {
